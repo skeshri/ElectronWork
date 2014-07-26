@@ -1,0 +1,7 @@
+
+ElectronNtupler.cc - creates tree filled with electron variables, runs over all reco electrons
+           in all events. Event structure is not preserved, each tree entry is an electron.
+
+ElectronNtuplerEventStructure.cc - output tree contains events, each event contains vectors
+           of electron variables. Thus one can tell which electrons came from the same event.
+

@@ -1,0 +1,17 @@
+
+Scripts:
+--------
+
+runEID_*.py - top scripts to control cmsRun.
+        DY vs TT: corresponding dataset is listed inside.
+        No _events" in the script name: runs ElectronNtupler plugin
+        Additional "_events" in the name: runs ElectronNtuplerEventStructure plugin
+
+crab_config*.py - config scripts for CRAB3
+
+Directorues:
+------------
+
+crab_projects/ - directory where CRAB3 will store its output
+
+
