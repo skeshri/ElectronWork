@@ -71,11 +71,15 @@ class ElectronNtupler : public edm::EDAnalyzer {
       //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
-      bool checkAncestor(const reco::Candidate *gen, int ancestorPid);
+      // MC truth matching utilities
+      // The function that uses algorith from Josh Bendavid with 
+      // an explicit loop over gen particles. 
       int matchToTruth(const pat::Electron &el, const edm::Handle<edm::View<reco::GenParticle>>  &prunedGenParticles);
-      void findFirstNonElectronMother(const reco::Candidate *particle, int &ancestorPID, int &ancestorStatus);
+      // The function that uses the standard genParticle() matching for electrons.
       int matchToTruthAlternative(const pat::Electron &el);
   
+      bool checkAncestor(const reco::Candidate *gen, int ancestorPid);
+      void findFirstNonElectronMother(const reco::Candidate *particle, int &ancestorPID, int &ancestorStatus);
       void printAllZeroMothers(const reco::Candidate *particle);
 
       // ----------member data ---------------------------
@@ -183,6 +187,7 @@ ElectronNtupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   int firstGoodVertexIdx = 0;
   for (VertexCollection::const_iterator vtx = vertices->begin(); 
        vtx != vertices->end(); ++vtx, ++firstGoodVertexIdx) {
+    // The "good vertex" selection is borrowed from Giovanni Zevi Della Porta
     // Replace isFake() for miniAOD because it requires tracks and miniAOD vertices don't have tracks:
     // Vertex.h: bool isFake() const {return (chi2_==0 && ndof_==0 && tracks_.empty());}
     if (  /*!vtx->isFake() &&*/ 
@@ -193,9 +198,6 @@ ElectronNtupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
       break;
     }
   }
-  // // DEBUG:
-  // firstGoodVertex = vertices->begin();
-  // printf("First good vertex found at index= %d\n", firstGoodVertexIdx);
 
   if ( firstGoodVertex==vertices->end() )
     return; // skip event if there are no good PVs
@@ -204,15 +206,19 @@ ElectronNtupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
    edm::Handle<pat::ElectronCollection> electrons;
    iEvent.getByToken(electronToken_, electrons);
 
+   //
    // Loop over electrons
-   printf("DEBUG: new event\n"); 
+   //
+   // printf("DEBUG: new event\n"); 
    for (const pat::Electron &el : *electrons) {
 
      // Kinematics
      pt_ = el.pt();
-     // DEBUG
+     // Keep only electrons above 10 GeV.
+     // NOTE: miniAOD does not store some of the info for electrons <5 GeV at all!
      if( pt_ < 10 ) 
        continue;
+
      etaSC_ = el.superCluster()->eta();
      
      // ID and matching
@@ -222,7 +228,8 @@ ElectronNtupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
      sigmaIetaIeta_ = el.sigmaIetaIeta();
      full5x5_sigmaIetaIeta_ = el.full5x5_sigmaIetaIeta();
      // |1/E-1/p| = |1/E - EoverPinner/E| is computed below
-     // The if protects against ecalEnergy == inf or zero
+     // The if protects against ecalEnergy == inf or zero (always
+     // the case for electrons below 5 GeV in miniAOD)
      if( el.ecalEnergy() == 0 ){
        printf("Electron energy is zero!\n");
        ooEmooP_ = 1e30;
@@ -243,7 +250,6 @@ ElectronNtupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
      // Impact parameter
      d0_ = (-1) * el.gsfTrack()->dxy(firstGoodVertex->position() );
      dz_ = el.gsfTrack()->dz( firstGoodVertex->position() );
-     // printf("     dz= %f\n", dz_);
      
      // Conversion rejection
      expectedMissingInnerHits_ = el.gsfTrack()->trackerExpectedHitsInner().numberOfLostHits();
@@ -257,20 +263,9 @@ ElectronNtupler::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
      isTrueElectron_ = matchToTruth( el, prunedGenParticles); 
      isTrueElectronAlternative_ = matchToTruthAlternative( el );
 
-     // Check specifically one case of disagreement between methods
-     // printf("DEBUG: decisions %d   %d\n", isTrueElectron_, isTrueElectronAlternative_);
-     // if( isTrueElectron_ == TRUE_NON_PROMPT_ELECTRON 
-     // 	 && isTrueElectronAlternative_ == TRUE_PROMPT_ELECTRON ){
-     //   printf("\nINFO: matching=true_prompt, alternative=true_from_tau, ancestor tree:\n");
+     // For debug purposes, one can use this utility that prints 
+     // the decay history, using standard matching in this case:
      //   printAllZeroMothers( el.genParticle() );
-     //   printf("\n");
-     // }
-     // if( isTrueElectron_ == UNMATCHED && isTrueElectronAlternative_ != 0 ){
-     //   const reco::GenParticle * gen = el.genParticle();
-     //   double dRtmp = ROOT::Math::VectorUtil::DeltaR( el.p4(), gen->p4() );
-     //   printf("\nINFO: genParticle found match with dR= %f  pdg= %d   status= %d\n", 
-     // 	      dRtmp, gen->pdgId(), gen->status() );
-     // }
 
      // Save this electron's info
      electronTree_->Fill();
@@ -354,6 +349,8 @@ bool ElectronNtupler::checkAncestor(const reco::Candidate *gen, int ancestorPid)
   return false;
 }
 
+// The function that uses algorith from Josh Bendavid with 
+// an explicit loop over gen particles. 
 int ElectronNtupler::matchToTruth(const pat::Electron &el, 
 				  const edm::Handle<edm::View<reco::GenParticle>> &prunedGenParticles){
 
@@ -424,6 +421,7 @@ void ElectronNtupler::findFirstNonElectronMother(const reco::Candidate *particle
   return;
 }
 
+// The function that uses the standard genParticle() matching for electrons.
 int ElectronNtupler::matchToTruthAlternative(const pat::Electron &el){
 
      //

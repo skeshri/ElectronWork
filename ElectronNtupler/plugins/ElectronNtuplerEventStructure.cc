@@ -204,12 +204,11 @@ ElectronNtuplerEventStructure::analyze(const edm::Event& iEvent, const edm::Even
       break;
     }
   }
-  // // DEBUG:
-  // firstGoodVertex = vertices->begin();
-  // printf("First good vertex found at index= %d\n", firstGoodVertexIdx);
 
   if ( firstGoodVertex==vertices->end() )
     return; // skip event if there are no good PVs
+
+  // Seems always zero. Not stored in miniAOD...?
   pvNTracks_ = firstGoodVertex->nTracks();
 
    // Get electron collection
@@ -217,7 +216,6 @@ ElectronNtuplerEventStructure::analyze(const edm::Event& iEvent, const edm::Even
    iEvent.getByToken(electronToken_, electrons);
 
    // Loop over electrons
-   // printf("DEBUG: new event\n"); 
    nElectrons_ = 0;
    pt_.clear();
    etaSC_.clear();
@@ -238,7 +236,6 @@ ElectronNtuplerEventStructure::analyze(const edm::Event& iEvent, const edm::Even
    for (const pat::Electron &el : *electrons) {
 
      // Kinematics
-     // DEBUG
      if( el.pt() < 10 ) 
        continue;
 
@@ -254,6 +251,7 @@ ElectronNtuplerEventStructure::analyze(const edm::Event& iEvent, const edm::Even
      full5x5_sigmaIetaIeta_.push_back( el.full5x5_sigmaIetaIeta() );
      // |1/E-1/p| = |1/E - EoverPinner/E| is computed below
      // The if protects against ecalEnergy == inf or zero
+     // (always the case for miniAOD for electrons <5 GeV)
      if( el.ecalEnergy() == 0 ){
        printf("Electron energy is zero!\n");
        ooEmooP_.push_back( 1e30 );
@@ -288,20 +286,9 @@ ElectronNtuplerEventStructure::analyze(const edm::Event& iEvent, const edm::Even
      isTrueElectron_.push_back( matchToTruth( el, prunedGenParticles) );
      isTrueElectronAlternative_.push_back( matchToTruthAlternative( el ) );
 
-     // Check specifically one case of disagreement between methods
-     // printf("DEBUG: decisions %d   %d\n", isTrueElectron_, isTrueElectronAlternative_);
-     // if( isTrueElectron_ == TRUE_NON_PROMPT_ELECTRON 
-     // 	 && isTrueElectronAlternative_ == TRUE_PROMPT_ELECTRON ){
-     //   printf("\nINFO: matching=true_prompt, alternative=true_from_tau, ancestor tree:\n");
+     // Use this for debugging if needed, prints decay history.
+     // Works with standard matching:
      //   printAllZeroMothers( el.genParticle() );
-     //   printf("\n");
-     // }
-     // if( isTrueElectron_ == UNMATCHED && isTrueElectronAlternative_ != 0 ){
-     //   const reco::GenParticle * gen = el.genParticle();
-     //   double dRtmp = ROOT::Math::VectorUtil::DeltaR( el.p4(), gen->p4() );
-     //   printf("\nINFO: genParticle found match with dR= %f  pdg= %d   status= %d\n", 
-     // 	      dRtmp, gen->pdgId(), gen->status() );
-     // }
 
    }
    
