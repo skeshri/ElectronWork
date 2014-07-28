@@ -1,0 +1,90 @@
+
+This directory contains a package for rectangular cut optimization
+with TMVA.
+
+//-------------------------------------------------------
+         Files and their content
+//-------------------------------------------------------
+
+Variables.hh: This file contains the list of the variables
+     for TMVA optimization and the list of spectators. The
+     list of variables is structured so that it contains the
+     variable name exactly as in the input ntuple, the variable
+expression as it is passed to TMVA (such as "abs(d0)"),
+
+OptimizationConstants.hh: this file contains about all settings
+     for optimization (except for the variable list): input files/trees, 
+     working points specs, TMVA options, etc.
+
+VarCut.hh/.cc: The class that contains a single set of cut values.
+     It is a writable ROOT object. It has the same number of
+     variables as specified in Variables.hh, and one should refer
+     to Variables.hh to find out which variable has which name.
+
+optimize.hh/.cc: This is not a class, but plaine code with the main
+     function optimize(...). It runs a single optimization of rectangular cuts.
+     The parameters passed in:
+        - the location of the ROOT file with VarCut object that defines
+             the limits for cuts during optimization
+        - the base for the Root file name construction for the output VarCut
+             objects for working points.
+        - the base for dir and file names for the standard TMVA output
+
+rootlogon.C: automatically builds and loads several pieces of code
+     such as VarCut.cc, etc.
+
+simpleOptimization.C: runs simple one-pass optimization calling optimize().
+     Presently, it is suggested to run this code without compiling
+     (it compiles, but on exit ROOT gives segv, most likely while trying
+     to delete factories).
+        The output cuts for working points are found in the cut_repository/
+     subdirectory with the names configured in the code.
+
+fourPointOptimization.C: runs optimization in four passes. The first
+     pass uses 99.9% efficient cut range for optimization, the second
+     uses WP Veto cuts as cut limits, the third uses WP Loose as cut
+     limits, etc.
+       In the end, WP Veto, Loose, Medium, Tight are taken from the
+     pass1, pass2, pass3, pass4 output, respectively.
+        The output cuts for working points are found in the cut_repository/
+     subdirectory with the names configured in the code.
+
+exampleFillCuts.C: an example of how to create ROOT files with VarCut objects
+     if cuts are known from somewhere else.
+
+Directories:
+  
+   cut_repository/: created to contain ROOT files with individual cut sets
+      saved as VarCut objects.
+
+   trainingData/: created to contain subdirectories with the standard
+      output of TMVA (weights xml, ROOT file with training diagnostics).
+      WARNING: this directory can become large if not cleaned up
+      occasionally, because TMVA usually saves full testing and training
+      trees.
+
+//-------------------------------------------------------
+         Usage
+//-------------------------------------------------------
+
+To run cut optimization, first look through contents of the
+OptimizationConstants.hh and Variables.hh and adjust as necessary
+for your case. At the very least change input file and tree names
+and the numbers of train and test events for TMVA.
+
+To run simple one-pass optimization:
+
+root -b -q simpleOptimization.C >& test.log &
+tail -f test.log
+
+To run full four-pass optimization for four working points:
+
+root -b -q fourPointOptimization.C >& test.log &
+tail -f test.log
+
+The output for the working points is found in the cut_repository/
+
+To create a ROOT file with a stored cut set: edit cut values in
+exampleFillCuts.C, and then run:
+  root -b -q exampleFillCuts.C+
+and the files with cuts will appear in the cut_repository/.
