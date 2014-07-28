@@ -1,6 +1,8 @@
 #ifndef OPTIMIZATIONCONSTANTS_HH
 #define OPTIMIZATIONCONSTANTS_HH
 
+#include "TFile.h"
+#include "TString.h"
 #include "TCut.h"
 
 namespace Opt {
@@ -35,25 +37,25 @@ namespace Opt {
   //
   TFile *fileSignal = 0;
   TFile *fileBackground = 0;
-  TString fnameSignal = "../../ntuples/DYJetsToLL_50ns.root";
-  TString signalTreeName = "ntupler/ElectronTree";
-  TString fnameBackground = "../../ntuples/TTJets_50ns.root";
-  TString backgroundTreeName = "ntupler/ElectronTree";
+  const TString fnameSignal = "../../ntuples/DYJetsToLL_50ns.root";
+  const TString signalTreeName = "ntupler/ElectronTree";
+  const TString fnameBackground = "../../ntuples/TTJets_50ns.root";
+  const TString backgroundTreeName = "ntupler/ElectronTree";
   
   //
   // Various preselection and truth matching cuts
   //
   // ( 0: fake, 1: true prompt, 2: true from tau, 3: true non-prompt)
-  TCut trueEleCut = "isTrueElectron == 1";
-  TCut fakeEleCut = "isTrueElectron == 0 || isTrueElectron == 3";
+  const TCut trueEleCut = "isTrueElectron == 1";
+  const TCut fakeEleCut = "isTrueElectron == 0 || isTrueElectron == 3";
   
   // Kinematics
-  TCut ptCut = "pt>=20 && pt<50";
-  TCut etaCutBarrel = " abs(etaSC) < 1.4442 " ;
-  TCut etaCutEndcap = " abs(etaSC) > 1.566 " ;
+  const TCut ptCut = "pt>=20 && pt<50";
+  const TCut etaCutBarrel = " abs(etaSC) < 1.4442 " ;
+  const TCut etaCutEndcap = " abs(etaSC) > 1.566 " ;
   
   // Anything else
-  TCut otherPreselectionCuts = "passConversionVeto && abs(dz)<1";
+  const TCut otherPreselectionCuts = "passConversionVeto && abs(dz)<1";
 }
 
 #endif
