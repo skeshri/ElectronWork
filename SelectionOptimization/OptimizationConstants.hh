@@ -33,9 +33,9 @@ enum WorkingPointIndex       {WP_VETO  , WP_LOOSE  , WP_MEDIUM  , WP_TIGHT  };
 //
 TFile *fileSignal = 0;
 TFile *fileBackground = 0;
-TString fnameSignal = "../ntuples/DYJetsToLL_50ns.root";
+TString fnameSignal = "../../ntuples/DYJetsToLL_50ns.root";
 TString signalTreeName = "ntupler/ElectronTree";
-TString fnameBackground = "../ntuples/TTJets_50ns.root";
+TString fnameBackground = "../../ntuples/TTJets_50ns.root";
 TString backgroundTreeName = "ntupler/ElectronTree";
 
 //
