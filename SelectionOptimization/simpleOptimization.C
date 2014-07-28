@@ -29,6 +29,11 @@ void simpleOptimization(){
   // This string will be used to construct the dir for the output
   // of TMVA: the dir for weights and the filename for diagnostics
   TString trainingDataOutputBase = "training_results_";
+  if( useBarrel ){
+    trainingDataOutputBase += "barrel_";
+  }else{
+    trainingDataOutputBase += "endcap_";
+  }
   trainingDataOutputBase += nameTime;
 
   printf("\n-----------------------------------------------------------------\n");
