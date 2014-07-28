@@ -1,4 +1,7 @@
+#include "TSystem.h"
+
 #include "optimize.hh"
+
 //
 // Main method
 //
@@ -21,9 +24,14 @@ void optimize(TString cutMaxFileName, TString cutsOutFileNameBase,
   // Configure output details
   TString trainingOutputDir = TString("trainingData/")
     + trainingDataOutputBase;
-  TMVA::gConfig().GetIONames().fWeightFileDir = trainingOutputDir;
   printf("The directory where the xml results of the training is:\n");
   printf("         %s\n", trainingOutputDir.Data());
+  FileStat_t buf;
+  if( gSystem->GetPathInfo(trainingOutputDir.Data(), buf) ){
+    printf("     this directory does not exist, creating it.\n");
+    gSystem->MakeDirectory(trainingOutputDir.Data());
+  }
+  TMVA::gConfig().GetIONames().fWeightFileDir = trainingOutputDir;
   
   TString outfileName = trainingOutputDir + TString("/")
     + TString("TMVA_") + trainingDataOutputBase
