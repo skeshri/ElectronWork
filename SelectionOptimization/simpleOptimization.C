@@ -9,12 +9,12 @@ void simpleOptimization(){
   // Define source for the initial cut range
   TString startingCutMaxFileName 
     = "cuts_barrel_eff_0999_20140727_165000.root";
-  if( !useBarrel )
+  if( !Opt::useBarrel )
     startingCutMaxFileName 
       = "cuts_endcap_eff_0999_20140727_165000.root";
 
   TString namePrefix = "cuts_barrel_";
-  if( !useBarrel )
+  if( !Opt::useBarrel )
     namePrefix = "cuts_endcap_";
   TString nameTime = "20140728_104400";
   
@@ -29,7 +29,7 @@ void simpleOptimization(){
   // This string will be used to construct the dir for the output
   // of TMVA: the dir for weights and the filename for diagnostics
   TString trainingDataOutputBase = "training_results_";
-  if( useBarrel ){
+  if( Opt::useBarrel ){
     trainingDataOutputBase += "barrel_";
   }else{
     trainingDataOutputBase += "endcap_";

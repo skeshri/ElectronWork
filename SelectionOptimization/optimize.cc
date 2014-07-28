@@ -10,16 +10,16 @@ void optimize(TString cutMaxFileName, TString cutsOutFileNameBase,
 
   // Input signal tree
   printf("\n Take true electrons from %s   tree %s\n\n", 
-	 fnameSignal.Data(), signalTreeName.Data());
-  TTree *signalTree = getTreeFromFile( fnameSignal, signalTreeName, 
-				       &fileSignal );
+	 Opt::fnameSignal.Data(), Opt::signalTreeName.Data());
+  TTree *signalTree = getTreeFromFile( Opt::fnameSignal, Opt::signalTreeName, 
+				       &Opt::fileSignal );
 
   // Input background tree  
   printf("\n Take background electrons from %s   tree %s\n\n", 
-	 fnameBackground.Data(), backgroundTreeName.Data());
-  TTree *backgroundTree = getTreeFromFile( fnameBackground, 
-					   backgroundTreeName,
-					   &fileBackground);
+	 Opt::fnameBackground.Data(), Opt::backgroundTreeName.Data());
+  TTree *backgroundTree = getTreeFromFile( Opt::fnameBackground, 
+					   Opt::backgroundTreeName,
+					   &Opt::fileBackground);
   
   // Configure output details
   TString trainingOutputDir = TString("trainingData/")
@@ -83,11 +83,11 @@ void optimize(TString cutMaxFileName, TString cutsOutFileNameBase,
   // better understanding.
   // delete factory;
 
-  if( fileSignal != 0 ){
-    fileSignal->Close();
+  if( Opt::fileSignal != 0 ){
+    Opt::fileSignal->Close();
   }
-  if( fileBackground != 0 ){
-    fileBackground->Close();
+  if( Opt::fileBackground != 0 ){
+    Opt::fileBackground->Close();
   }
 
   return;
@@ -131,19 +131,19 @@ void configureCuts(TCut &signalCuts, TCut &backgroundCuts){
   // Define all cuts 
  
   TCut etaCut = "";
-  if( useBarrel ){
+  if( Opt::useBarrel ){
     printf("\n\nTraining for BARREL electrons\n\n");
-    etaCut = etaCutBarrel;
+    etaCut = Opt::etaCutBarrel;
   }else{
     printf("\n\nTraining for ENDCAP electrons\n\n");
-    etaCut = etaCutEndcap;
+    etaCut = Opt::etaCutEndcap;
   }
-  TCut kinematicCuts = ptCut && etaCut;
+  TCut kinematicCuts = Opt::ptCut && etaCut;
 
-  TCut preselectionCuts = kinematicCuts && otherPreselectionCuts;
+  TCut preselectionCuts = kinematicCuts && Opt::otherPreselectionCuts;
   
-  signalCuts = preselectionCuts && trueEleCut;
-  backgroundCuts = preselectionCuts && fakeEleCut;  
+  signalCuts = preselectionCuts && Opt::trueEleCut;
+  backgroundCuts = preselectionCuts && Opt::fakeEleCut;  
 
 }
 
@@ -151,13 +151,13 @@ TString getTrainAndTestOptions(){
 
   TString options = "SplitMode=Random:!V";
   options += ":nTrain_Signal=";
-  options += nTrain_Signal;
+  options += Opt::nTrain_Signal;
   options += ":nTrain_Background=";
-  options += nTrain_Background;
+  options += Opt::nTrain_Background;
   options += ":nTest_Signal=";
-  options += nTest_Signal;
+  options += Opt::nTest_Signal;
   options += ":nTest_Background=";
-  options += nTest_Background;
+  options += Opt::nTest_Background;
  
   printf("INFO: training and test options: %s\n", options.Data());
   return options;
@@ -165,10 +165,10 @@ TString getTrainAndTestOptions(){
 
 TString getMethodOptions(TString cutMaxFileName){
 
-  TString methodOptions = methodCutsBaseOptions;
+  TString methodOptions = Opt::methodCutsBaseOptions;
 
   // Next, put together cut-specific options
-  TString cutsFileName = cutRepositoryDir;
+  TString cutsFileName = Opt::cutRepositoryDir;
   cutsFileName += "/";
   cutsFileName += cutMaxFileName;
 
@@ -201,16 +201,16 @@ TString getMethodOptions(TString cutMaxFileName){
 
 void writeWorkingPoints(const TMVA::Factory *factory, TString cutsOutFileNameBase){
 
-  TString cutsFileName = cutRepositoryDir;
+  TString cutsFileName = Opt::cutRepositoryDir;
   cutsFileName += "/";
   cutsFileName += cutsOutFileNameBase;
 
   // Loop over four working points
   printf("The working points being saved:\n");
-  for(int iwp=0; iwp<nWP; iwp++){
+  for(int iwp=0; iwp<Opt::nWP; iwp++){
     TString cutsFileNameWP = cutsFileName;
     cutsFileNameWP += "_";
-    cutsFileNameWP += wpNames[iwp];
+    cutsFileNameWP += Opt::wpNames[iwp];
     cutsFileNameWP += ".root";
     TFile *cutsFile = new TFile(cutsFileNameWP, "recreate");
     if( !cutsFile )
@@ -223,7 +223,7 @@ void writeWorkingPoints(const TMVA::Factory *factory, TString cutsOutFileNameBas
 
     std::vector <double> cutLo;
     std::vector <double> cutHi;
-    method->GetCuts(eff[iwp], cutLo, cutHi);
+    method->GetCuts(Opt::eff[iwp], cutLo, cutHi);
     // NOTE: this relies on filling the factory with AddVarilables
     // in exactly the same order (using the same loop) 
     // Start with a sanity check:
@@ -234,7 +234,7 @@ void writeWorkingPoints(const TMVA::Factory *factory, TString cutsOutFileNameBas
       cutMax->setCutValue(Vars::variables[ivar]->name, 
 			  cutHi.at(ivar));
     }
-    printf("   working point %s\n", wpNames[iwp].Data());
+    printf("   working point %s\n", Opt::wpNames[iwp].Data());
     cutMax->print();
     cutMax->Write("cuts");
     cutsFile->Close();
