@@ -2,6 +2,8 @@
 ###################
 *.so
 *.pyc
+*_cc.d
+*_hh.d
 
 # Logs #
 ########
@@ -11,9 +13,11 @@
 #######################
 *.root
 
-# Anything from cran projects #
-###############################
+# Local directories where output goes #
+#######################################
 ElectronNtupler/test/crab_projects/*
+SelectionOptimization/trainingData/*
+SelectionOptimization/cut_repository/*
 
 # Backup copies #
 #################
