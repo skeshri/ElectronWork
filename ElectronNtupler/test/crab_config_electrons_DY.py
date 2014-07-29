@@ -7,7 +7,7 @@ config.General.workArea = 'crab_projects'
 
 config.section_("JobType")
 config.JobType.pluginName = 'Analysis'
-config.JobType.psetName = 'runEID_cfg.py'
+config.JobType.psetName = 'runEID_on_DY_cfg.py'
 
 config.section_("Data")
 config.Data.inputDataset = '/DYJetsToLL_M-50_13TeV-madgraph-pythia8/sisagir-Spring14dr-PU_S14_POSTLS170_V6AN1-miniAOD706p1-814812ec83fce2f620905d2bb30e9100/USER'
