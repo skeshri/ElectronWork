@@ -62,6 +62,13 @@ findCutLimits.C: this code determines cut values that correspond to
      the present electron variables in findVarLimits(..) function and
      need to be updated if other variables are added.
 
+drawVariablesAndCuts.C: this script draws distributions of all variables
+     and if requested also draws cuts corresponding to four working points.
+     The behavior is controlled by global parameters in the beginning of
+     the script (barrel or endcap, which cuts to draw, etc). Some of the info
+     is taken from OptimizationConstants.hh, but the names of the ntuples
+     are inside of this script.
+
 Directories:
   
    cut_repository/: created to contain ROOT files with individual cut sets

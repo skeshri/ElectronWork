@@ -19,6 +19,7 @@
 ElectronNtupler/test/crab_projects/*
 SelectionOptimization/trainingData/*
 SelectionOptimization/cut_repository/*
+SelectionOptimization/figures/*
 
 # Backup copies #
 #################
