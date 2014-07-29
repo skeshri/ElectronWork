@@ -52,6 +52,16 @@ fourPointOptimization.C: runs optimization in four passes. The first
 exampleFillCuts.C: an example of how to create ROOT files with VarCut objects
      if cuts are known from somewhere else.
 
+findCutLimits.C: this code determines cut values that correspond to
+     99.9% efficiency for each variable separately. It uses all definitions
+     the same as the optimization: what is the preselection, what is the
+     signal ntuple, where to write cut object filled with 99.9% efficient cuts,
+     etc. The unique part of the cut file name is defined by the dateTag
+     string in the beginning of the file and should be changed as needed.
+     Note: the "sensible limits" for internal machinery are set for
+     the present electron variables in findVarLimits(..) function and
+     need to be updated if other variables are added.
+
 Directories:
   
    cut_repository/: created to contain ROOT files with individual cut sets
