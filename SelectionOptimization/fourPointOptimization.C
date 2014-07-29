@@ -8,10 +8,10 @@ void fourPointOptimization(){
   
   // Define source for the initial cut range
   TString startingCutMaxFileName 
-    = "cuts_barrel_eff_0999_20140729_111500..root";
+    = "cuts_barrel_eff_0999_20140729_111500.root";
   if( !Opt::useBarrel )
     startingCutMaxFileName 
-      = "cuts_endcap_eff_0999_20140729_111500..root";
+      = "cuts_endcap_eff_0999_20140729_111500.root";
 
   TString namePrefix = "cuts_barrel_";
   if( !Opt::useBarrel )
