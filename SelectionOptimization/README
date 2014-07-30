@@ -12,6 +12,13 @@ Variables.hh: This file contains the list of the variables
      variable name exactly as in the input ntuple, the variable
 expression as it is passed to TMVA (such as "abs(d0)"),
 
+VariableLimits.hh: This file defines sets of user-imposed limits
+     for cut optimization. One may want to, e.g., enforce that
+     the H/E cut is no looser than 0.15 for whatever reason, or 
+     one may want to make some of the cuts to be no looser than 
+     HLT cuts. These limitations are defined here, and passed
+     as a parameter into optimize.cc code from a higher-level script.
+
 OptimizationConstants.hh: this file contains about all settings
      for optimization (except for the variable list): input files/trees, 
      working points specs, TMVA options, etc.
@@ -29,6 +36,11 @@ optimize.hh/.cc: This is not a class, but plaine code with the main
         - the base for the Root file name construction for the output VarCut
              objects for working points.
         - the base for dir and file names for the standard TMVA output
+        - one of the predefined sets of user-defined cut restrictions.
+           During optimization, the code chooses the tightest restriction
+           out of those imposed from the cut file passed as the first parameter
+           to this function above (usually 99.9% or the previous working point)
+           and these user-predefined cut restrictions (see VariableLimits.hh).
 
 rootlogon.C: automatically builds and loads several pieces of code
      such as VarCut.cc, etc.
@@ -44,10 +56,17 @@ fourPointOptimization.C: runs optimization in four passes. The first
      pass uses 99.9% efficient cut range for optimization, the second
      uses WP Veto cuts as cut limits, the third uses WP Loose as cut
      limits, etc.
+       In addition to using the working point of the previous pass for the
+     next pass as cut limits, additionally user-defined restrictions are passed
+     to the optimize() function. These are defined in VariableLimits.hh. Presently,
+     for WP Veto in pass1, the object with effectively no restrictions is passed,
+     while for pass2,3,4 the object with reasonable common sense restrictions is
+     passed.
        In the end, WP Veto, Loose, Medium, Tight are taken from the
      pass1, pass2, pass3, pass4 output, respectively.
         The output cuts for working points are found in the cut_repository/
      subdirectory with the names configured in the code.
+       
 
 exampleFillCuts.C: an example of how to create ROOT files with VarCut objects
      if cuts are known from somewhere else.
@@ -66,6 +85,15 @@ findCutLimits.C: this code determines cut values that correspond to
      Note: the "sensible limits" for internal machinery are set for
      the present electron variables in findVarLimits(..) function and
      need to be updated if other variables are added.
+
+computeSingleCutEfficiency.C: this script computes the signal and background
+     efficiency of a single cut for a variable from the list defined in Variables.hh 
+     using preselection defined in OptimizationConstants.hh.
+     Use it as follows:
+        .L computeSingleCutEfficiency.C+
+        bool forBarrel = true;
+        float cutValue = 0.2;
+        computeSingleCutEfficiency("d0",cutValue, forBarrel);
 
 drawVariablesAndCuts.C: this script draws distributions of all variables
      and if requested also draws cuts corresponding to four working points.
