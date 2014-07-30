@@ -44,7 +44,7 @@ namespace VarLims{
     new VariableLimits("ooEmooP"                 ,1e30),
     new VariableLimits("d0"                      ,0.10), //eff EB(EE) 99.9(99.2)% 
     new VariableLimits("dz"                      ,1e30),
-    new VariableLimits("expectedMissingInnerHits",1e30)  //eff EB(EE) 99.8(99.4)%
+    new VariableLimits("expectedMissingInnerHits",1.02)  //eff EB(EE) 99.8(99.4)%
   };
 
 }
