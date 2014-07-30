@@ -26,7 +26,7 @@ TCut *VarCut::getCut(){
   for(int i=0; i<Vars::nVariables; i++){
     // The += adds all cuts with &&:
     (*cut) += TString::Format(" %s < %f ",
-			      Vars::variables[i]->name.Data(),
+			      Vars::variables[i]->nameTmva.Data(),
 			      _cuts[i]);
   }
   

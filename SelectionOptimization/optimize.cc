@@ -6,7 +6,8 @@
 // Main method
 //
 void optimize(TString cutMaxFileName, TString cutsOutFileNameBase,
-	      TString trainingDataOutputBase){
+	      TString trainingDataOutputBase,
+	      VarLims::VariableLimits **userDefinedCutLimits){
 
   // Input signal tree
   printf("\n Take true electrons from %s   tree %s\n\n", 
@@ -64,7 +65,7 @@ void optimize(TString cutMaxFileName, TString cutsOutFileNameBase,
   
   // Book the Cuts method with the factory
   TString methodName = "Cuts";
-  TString methodOptions = getMethodOptions(cutMaxFileName);
+  TString methodOptions = getMethodOptions(cutMaxFileName, userDefinedCutLimits);
   factory->BookMethod( TMVA::Types::kCuts, methodName,methodOptions);
   
   // Do the work: optimization, testing, and evaluation
@@ -163,7 +164,8 @@ TString getTrainAndTestOptions(){
   return options;
 }
 
-TString getMethodOptions(TString cutMaxFileName){
+TString getMethodOptions(TString cutMaxFileName, 
+			 VarLims::VariableLimits **userDefinedCutLimits){
 
   TString methodOptions = Opt::methodCutsBaseOptions;
 
@@ -179,6 +181,23 @@ TString getMethodOptions(TString cutMaxFileName){
   if( !cutMax )
     assert(0);
 
+  if(!userDefinedCutLimits)
+    assert(0);
+  // Make sure the user defined cut limits array is consistent with the optimization
+  // variables set
+  bool checkPassed = true;
+  if( Vars::nVariables != VarLims::nVarLimits )
+    checkPassed = false;
+  for(int i=0; i<Vars::nVariables; i++){
+    if( Vars::variables[i]->name != userDefinedCutLimits[i]->name )
+      checkPassed = false;
+  }
+  if( !checkPassed ){
+    printf("ERROR: the list of optimization variables is not consistent with the list\n");
+    printf("       of the variables with user defined cut limits.\n");
+    assert(0);
+  }
+
   // As all cuts are upper cuts, we set the lower cut to -inf
   // Note: we do not have any negative vars, the vars that can be negative
   // are symmetric and enter as abs(XXX).
@@ -187,9 +206,10 @@ TString getMethodOptions(TString cutMaxFileName){
   }
   // Add all cut ranges:
   for(int i=0; i<Vars::nVariables; i++){
-    methodOptions += TString::Format(":CutRangeMax[%d]=%.6f", 
-				     i, 
-				     cutMax->getCutValue(Vars::variables[i]->name));
+    float max = cutMax->getCutValue(Vars::variables[i]->name);
+    if( max > userDefinedCutLimits[i]->max )
+      max = userDefinedCutLimits[i]->max;
+    methodOptions += TString::Format(":CutRangeMax[%d]=%.6f", i, max);
   }
   
   printf("\nMethod configuration: method options are\n");

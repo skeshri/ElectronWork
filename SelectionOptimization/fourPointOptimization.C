@@ -2,6 +2,7 @@
 #include "TSystem.h"
 #include "TString.h"
 #include "OptimizationConstants.hh"
+#include "VariableLimits.hh"
 #include "optimize.hh"
 
 void fourPointOptimization(){
@@ -17,7 +18,7 @@ void fourPointOptimization(){
   if( !Opt::useBarrel )
     namePrefix = "cuts_endcap_";
   TString namePass[Opt::nWP] = {"pass1_","pass2_","pass3_","pass4_"};
-  TString nameTime = "20140727_182500";
+  TString nameTime = "20140730_200000";
 
   for( int ipass = 0; ipass<Opt::nWP; ipass++){
 
@@ -48,6 +49,13 @@ void fourPointOptimization(){
     trainingDataOutputBase += namePass[ipass];
     trainingDataOutputBase += nameTime;
 
+    // Use the following user-defined limits
+    // (if in doubt, use the no-restrictions one defined in VariableLimits.hh)
+    VarLims::VariableLimits **userDefinedCutLimits = VarLims::limitsNoRestrictions;
+    if( ipass > 0 ){
+      userDefinedCutLimits = VarLims::limitsWPAnyV1;
+    }
+
     printf("\n-----------------------------------------------------------------\n");
     printf("\n");
     printf("    Run new optimization pass  \n");
@@ -58,7 +66,8 @@ void fourPointOptimization(){
     printf(" %s\n", cutOutputBase.Data());
     printf("------------------------------------------------------------------\n\n");
 
-    optimize(cutMaxFileName, cutOutputBase, trainingDataOutputBase);    
+    optimize(cutMaxFileName, cutOutputBase, trainingDataOutputBase,
+	     userDefinedCutLimits);    
 
   }
  

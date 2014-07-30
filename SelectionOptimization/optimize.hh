@@ -6,6 +6,7 @@
 #include "TString.h"
 
 #include "Variables.hh"
+#include "VariableLimits.hh"
 #include "VarCut.hh"
 #include "OptimizationConstants.hh"
 
@@ -24,7 +25,8 @@ TTree * getTreeFromFile(TString fname, TString tname, TFile **fileHandle);
 void    configureFactoryVariables(TMVA::Factory *factory);
 TString getTrainAndTestOptions();
 void    configureCuts(TCut &signalCuts, TCut &backgroundCuts);
-TString getMethodOptions(TString cutMaxFileName);
+TString getMethodOptions(TString cutMaxFileName,
+			 VarLims::VariableLimits **userDefinedCutLimits);
 // Output
 void writeWorkingPoints(const TMVA::Factory *factory, 
 			TString cutsOutFileNameBase);
@@ -35,6 +37,7 @@ void optimize(TString cutMaxFileName
 	      TString cutsOutFileNameBase 
 	      = "cuts_barrel_xxxx_99999999_999999",
 	      TString trainingDataOutputBase 
-	      = "training_xxxx_results_99999999_999999");
+	      = "training_xxxx_results_99999999_999999",
+	      VarLims::VariableLimits **userDefinedCutLimits = VarLims::limitsNoRestrictions);
 
 #endif

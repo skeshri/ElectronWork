@@ -2,6 +2,7 @@
 #include "TSystem.h"
 #include "TString.h"
 #include "OptimizationConstants.hh"
+#include "VariableLimits.hh"
 #include "optimize.hh"
 
 void simpleOptimization(){
@@ -16,7 +17,7 @@ void simpleOptimization(){
   TString namePrefix = "cuts_barrel_";
   if( !Opt::useBarrel )
     namePrefix = "cuts_endcap_";
-  TString nameTime = "20140728_104400";
+  TString nameTime = "20140730_200000";
   
   // This string is the file name that contains the ROOT file
   // with the VarCut object that defines the range of cut variation.
@@ -36,6 +37,10 @@ void simpleOptimization(){
   }
   trainingDataOutputBase += nameTime;
 
+  // Use the following user-defined limits
+  // (if in doubt, use the no-restrictions one defined in VariableLimits.hh)
+  VarLims::VariableLimits **userDefinedCutLimits = VarLims::limitsNoRestrictions;
+
   printf("\n-----------------------------------------------------------------\n");
   printf("\n");
   printf("    Run optimization, single pass  \n");
@@ -46,7 +51,8 @@ void simpleOptimization(){
   printf(" %s\n", cutOutputBase.Data());
   printf("------------------------------------------------------------------\n\n");
     
-  optimize(cutMaxFileName, cutOutputBase, trainingDataOutputBase);    
+  optimize(cutMaxFileName, cutOutputBase, trainingDataOutputBase,
+	   userDefinedCutLimits);    
     
 }
 
