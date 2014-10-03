@@ -1,0 +1,29 @@
+This directory contains assorted examples and analysis scripts related
+to electron selection.
+
+exampleElectronQuantities.C: 
+   This script reads in a standard ntuple from ElectronNtupler,
+   loops over events, for each event loops over electrons in this 
+   event, and plots some basic quantities. It contains also the
+   list of all available variables, in a commented out form.
+   To run it, first change it to point to the location of the
+   ntuples (in the beginning of the file, change the fileName const). Then:
+   root -l
+     .L exampleElectronQuantities.C+
+     exampleElectronQuantities();
+
+exampleDielectrons.C:
+   This script reads in a standard ntuple from the ElectronNtupler,
+   and loops over events. For each event there is a nested loop over
+   electrons that makes dielectron candidates. The dielectron invariant
+   mass is computed and plotted for all pairs, and also for pairs where
+   both electrons pass some quality cuts.
+     In this script, we read two ntuples: the Drell-Yan signal sample
+   ntuple, and also the TTbar ntuple that would represent background.
+   The two ntuples are joined into a single events tree.
+   To run it, change the path to the file names (fileNameSignal, 
+   fileNameBackground const in the beginning of the file), and then:
+   root -l
+    .L exampleDielectrons.C+
+    exampleDielectrons();
+
