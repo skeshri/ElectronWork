@@ -36,6 +36,8 @@
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
 
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+
 #include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
 #include "DataFormats/Candidate/interface/Candidate.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
@@ -83,6 +85,7 @@ class ElectronNtuplerEventStructure : public edm::EDAnalyzer {
 
       // ----------member data ---------------------------
       edm::EDGetTokenT<reco::VertexCollection> vtxToken_;
+      edm::EDGetTokenT<edm::View<PileupSummaryInfo> > pileupToken_;
       edm::EDGetTokenT<pat::ElectronCollection> electronToken_;
       edm::EDGetTokenT<edm::View<reco::GenParticle> > prunedGenToken_;
       edm::EDGetTokenT<edm::View<pat::PackedGenParticle> > packedGenToken_;
@@ -92,16 +95,26 @@ class ElectronNtuplerEventStructure : public edm::EDAnalyzer {
   // Vars for PVs
   Int_t pvNTracks_;
 
+  // Vars for pile-up
+  Int_t nPUTrue_;    // true pile-up
+  Int_t nPU_;        // generated pile-up
+  Int_t nPV_;        // number of reconsrtucted primary vertices
+
   // all electron variables
   Int_t nElectrons_;
 
   std::vector<Float_t> pt_;
   std::vector<Float_t> etaSC_;
+  std::vector<Float_t> phiSC_;
   std::vector<Float_t> dEtaIn_;
   std::vector<Float_t> dPhiIn_;
   std::vector<Float_t> hOverE_;
   std::vector<Float_t> sigmaIetaIeta_;
   std::vector<Float_t> full5x5_sigmaIetaIeta_;
+  std::vector<Float_t> isoChargedHadrons_;
+  std::vector<Float_t> isoNeutralHadrons_;
+  std::vector<Float_t> isoPhotons_;
+  std::vector<Float_t> isoChargedFromPU_;
   std::vector<Float_t> relIsoWithDBeta_;
   std::vector<Float_t> ooEmooP_;
   std::vector<Float_t> d0_;
@@ -125,6 +138,7 @@ class ElectronNtuplerEventStructure : public edm::EDAnalyzer {
 //
 ElectronNtuplerEventStructure::ElectronNtuplerEventStructure(const edm::ParameterSet& iConfig):
   vtxToken_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("vertices"))),
+  pileupToken_(consumes<edm::View<PileupSummaryInfo> >(iConfig.getParameter<edm::InputTag>("pileup"))),
   electronToken_(consumes<pat::ElectronCollection>(iConfig.getParameter<edm::InputTag>("electrons"))),
   prunedGenToken_(consumes<edm::View<reco::GenParticle> >(iConfig.getParameter<edm::InputTag>("pruned"))),
   packedGenToken_(consumes<edm::View<pat::PackedGenParticle> >(iConfig.getParameter<edm::InputTag>("packed")))
@@ -134,15 +148,25 @@ ElectronNtuplerEventStructure::ElectronNtuplerEventStructure(const edm::Paramete
   electronTree_ = fs->make<TTree> ("ElectronTree", "Electron data");
   
   electronTree_->Branch("pvNTracks"    ,  &pvNTracks_ , "pvNTracks/I");
+
+  electronTree_->Branch("nPV"        ,  &nPV_     , "nPV/I");
+  electronTree_->Branch("nPU"        ,  &nPU_     , "nPU/I");
+  electronTree_->Branch("nPUTrue"    ,  &nPUTrue_ , "nPUTrue/I");
+
   electronTree_->Branch("nEle"    ,  &nElectrons_ , "nEle/I");
   electronTree_->Branch("pt"    ,  &pt_    );
   electronTree_->Branch("etaSC" ,  &etaSC_ );
+  electronTree_->Branch("phiSC" ,  &phiSC_ );
   electronTree_->Branch("dEtaIn",  &dEtaIn_);
   electronTree_->Branch("dPhiIn",  &dPhiIn_);
   electronTree_->Branch("hOverE",  &hOverE_);
   electronTree_->Branch("sigmaIetaIeta",         &sigmaIetaIeta_);
   electronTree_->Branch("full5x5_sigmaIetaIeta", &full5x5_sigmaIetaIeta_);
-  electronTree_->Branch("relIsoWithDBeta"      , &relIsoWithDBeta_);
+  electronTree_->Branch("isoChargedHadrons"      , &isoChargedHadrons_);
+  electronTree_->Branch("isoNeutralHadrons"      , &isoNeutralHadrons_);
+  electronTree_->Branch("isoPhotons"             , &isoPhotons_);
+  electronTree_->Branch("isoChargedFromPU"       , &isoChargedFromPU_);
+  electronTree_->Branch("relIsoWithDBeta"        , &relIsoWithDBeta_);
   electronTree_->Branch("ooEmooP", &ooEmooP_);
   electronTree_->Branch("d0"     , &d0_);
   electronTree_->Branch("dz"     , &dz_);
@@ -184,11 +208,29 @@ ElectronNtuplerEventStructure::analyze(const edm::Event& iEvent, const edm::Even
   Handle<edm::View<pat::PackedGenParticle> > packedGenParticles;
   iEvent.getByToken(packedGenToken_,packedGenParticles);
 
+  // Get Pileup info
+  Handle<edm::View<PileupSummaryInfo> > pileupHandle;
+  iEvent.getByToken(pileupToken_, pileupHandle);
+  for( auto & puInfoElement : *pileupHandle){
+    if( puInfoElement.getBunchCrossing() == 0 ){
+      nPU_    = puInfoElement.getPU_NumInteractions();
+      nPUTrue_= puInfoElement.getTrueNumInteractions();
+    }
+  }
+  // vector<PileupSummaryInfo>::const_iterator PVI;
+  // for (PVI = pileupHandle->begin(); PVI != pileupHandle->end(); ++PVI) {
+  //   if (PVI->getBunchCrossing() == 0) {
+  //     nPU_     = PVI->getPU_NumInteractions();
+  //     nPUTrue_ = PVI->getTrueNumInteractions();
+  //   }
+  // }
+
   // Get PV
   edm::Handle<reco::VertexCollection> vertices;
   iEvent.getByToken(vtxToken_, vertices);
   if (vertices->empty()) return; // skip the event if no PV found
   //const reco::Vertex &pv = vertices->front();
+  nPV_    = vertices->size();
 
   VertexCollection::const_iterator firstGoodVertex = vertices->end();
   int firstGoodVertexIdx = 0;
@@ -219,11 +261,16 @@ ElectronNtuplerEventStructure::analyze(const edm::Event& iEvent, const edm::Even
    nElectrons_ = 0;
    pt_.clear();
    etaSC_.clear();
+   phiSC_.clear();
    dEtaIn_.clear();
    dPhiIn_.clear();
    hOverE_.clear();
    sigmaIetaIeta_.clear();
    full5x5_sigmaIetaIeta_.clear();
+   isoChargedHadrons_.clear();
+   isoNeutralHadrons_.clear();
+   isoPhotons_.clear();
+   isoChargedFromPU_.clear();
    relIsoWithDBeta_.clear();
    ooEmooP_.clear();
    d0_.clear();
@@ -242,6 +289,7 @@ ElectronNtuplerEventStructure::analyze(const edm::Event& iEvent, const edm::Even
      nElectrons_++;
      pt_.push_back( el.pt() );
      etaSC_.push_back( el.superCluster()->eta() );
+     phiSC_.push_back( el.superCluster()->phi() );
      
      // ID and matching
      dEtaIn_.push_back( el.deltaEtaSuperClusterTrackAtVtx() );
@@ -265,6 +313,10 @@ ElectronNtuplerEventStructure::analyze(const edm::Event& iEvent, const edm::Even
      // Isolation
      GsfElectron::PflowIsolationVariables pfIso = el.pfIsolationVariables();
      // Compute isolation with delta beta correction for PU
+     isoChargedHadrons_.push_back( pfIso.sumChargedHadronPt );
+     isoNeutralHadrons_.push_back( pfIso.sumNeutralHadronEt );
+     isoPhotons_.push_back( pfIso.sumPhotonEt );
+     isoChargedFromPU_.push_back( pfIso.sumPUPt );
      float absiso = pfIso.sumChargedHadronPt 
        + max(0.0 , pfIso.sumNeutralHadronEt + pfIso.sumPhotonEt - 0.5 * pfIso.sumPUPt );
      relIsoWithDBeta_.push_back( absiso/el.pt() );
