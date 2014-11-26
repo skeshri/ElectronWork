@@ -37,6 +37,7 @@
 #include "DataFormats/PatCandidates/interface/Electron.h"
 
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+#include "DataFormats/Common/interface/ValueMap.h"
 
 #include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
 #include "DataFormats/Candidate/interface/Candidate.h"
@@ -89,6 +90,7 @@ class ElectronNtuplerEventStructure : public edm::EDAnalyzer {
       edm::EDGetTokenT<pat::ElectronCollection> electronToken_;
       edm::EDGetTokenT<edm::View<reco::GenParticle> > prunedGenToken_;
       edm::EDGetTokenT<edm::View<pat::PackedGenParticle> > packedGenToken_;
+      edm::EDGetTokenT<double> rhoToken_;
 
   TTree *electronTree_;
 
@@ -99,6 +101,7 @@ class ElectronNtuplerEventStructure : public edm::EDAnalyzer {
   Int_t nPUTrue_;    // true pile-up
   Int_t nPU_;        // generated pile-up
   Int_t nPV_;        // number of reconsrtucted primary vertices
+  Float_t rho_;      // the rho variable
 
   // all electron variables
   Int_t nElectrons_;
@@ -141,7 +144,8 @@ ElectronNtuplerEventStructure::ElectronNtuplerEventStructure(const edm::Paramete
   pileupToken_(consumes<edm::View<PileupSummaryInfo> >(iConfig.getParameter<edm::InputTag>("pileup"))),
   electronToken_(consumes<pat::ElectronCollection>(iConfig.getParameter<edm::InputTag>("electrons"))),
   prunedGenToken_(consumes<edm::View<reco::GenParticle> >(iConfig.getParameter<edm::InputTag>("pruned"))),
-  packedGenToken_(consumes<edm::View<pat::PackedGenParticle> >(iConfig.getParameter<edm::InputTag>("packed")))
+  packedGenToken_(consumes<edm::View<pat::PackedGenParticle> >(iConfig.getParameter<edm::InputTag>("packed"))),
+  rhoToken_(consumes<double> (iConfig.getParameter<edm::InputTag>("rho")))
 {
 
   edm::Service<TFileService> fs;
@@ -152,6 +156,7 @@ ElectronNtuplerEventStructure::ElectronNtuplerEventStructure(const edm::Paramete
   electronTree_->Branch("nPV"        ,  &nPV_     , "nPV/I");
   electronTree_->Branch("nPU"        ,  &nPU_     , "nPU/I");
   electronTree_->Branch("nPUTrue"    ,  &nPUTrue_ , "nPUTrue/I");
+  electronTree_->Branch("rho"        ,  &rho_ , "rho/F");
 
   electronTree_->Branch("nEle"    ,  &nElectrons_ , "nEle/I");
   electronTree_->Branch("pt"    ,  &pt_    );
@@ -252,6 +257,11 @@ ElectronNtuplerEventStructure::analyze(const edm::Event& iEvent, const edm::Even
 
   // Seems always zero. Not stored in miniAOD...?
   pvNTracks_ = firstGoodVertex->nTracks();
+
+  edm::Handle< double > rhoH;
+  iEvent.getByToken(rhoToken_,rhoH);
+  rho_ = *rhoH;
+
 
    // Get electron collection
    edm::Handle<pat::ElectronCollection> electrons;

@@ -12,6 +12,7 @@ process.ntupler = cms.EDAnalyzer('ElectronNtuplerEventStructure',
                                  vertices = cms.InputTag("offlineSlimmedPrimaryVertices"),
                                  pileup = cms.InputTag("addPileupInfo"),
                                  electrons = cms.InputTag("slimmedElectrons"),
+                                 rho = cms.InputTag("fixedGridRhoFastjetAll")
 )
 
 process.TFileService = cms.Service("TFileService",
