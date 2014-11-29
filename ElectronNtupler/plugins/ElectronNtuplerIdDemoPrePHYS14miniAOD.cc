@@ -30,8 +30,8 @@
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-#include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
-#include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
+// #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
+// #include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
 
 #include "DataFormats/Common/interface/ValueMap.h"
@@ -67,7 +67,7 @@ class ElectronNtuplerIdDemoPrePHYS14miniAOD : public edm::EDAnalyzer {
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
       // ----------member data ---------------------------
-      edm::EDGetTokenT<edm::View<reco::GsfElectron> > electronCollectionToken_;
+      edm::EDGetTokenT<edm::View<pat::Electron> > electronCollectionToken_;
       edm::EDGetTokenT<edm::ValueMap<bool> > electronVetoIdMapToken_;
       edm::EDGetTokenT<edm::ValueMap<bool> > electronTightIdMapToken_;
 
@@ -97,7 +97,7 @@ class ElectronNtuplerIdDemoPrePHYS14miniAOD : public edm::EDAnalyzer {
 // constructors and destructor
 //
 ElectronNtuplerIdDemoPrePHYS14miniAOD::ElectronNtuplerIdDemoPrePHYS14miniAOD(const edm::ParameterSet& iConfig):
-  electronCollectionToken_(consumes<edm::View<reco::GsfElectron> >(iConfig.getParameter<edm::InputTag>("electrons"))),
+  electronCollectionToken_(consumes<edm::View<pat::Electron> >(iConfig.getParameter<edm::InputTag>("electrons"))),
   electronVetoIdMapToken_(consumes<edm::ValueMap<bool> >(iConfig.getParameter<edm::InputTag>("electronVetoIdMap"))),
   electronTightIdMapToken_(consumes<edm::ValueMap<bool> >(iConfig.getParameter<edm::InputTag>("electronTightIdMap")))
 {
@@ -139,7 +139,7 @@ ElectronNtuplerIdDemoPrePHYS14miniAOD::analyze(const edm::Event& iEvent, const e
   using namespace reco;
 
   // Get the electron collection
-  edm::Handle<edm::View<reco::GsfElectron> > electrons;
+  Handle<edm::View<pat::Electron> > electrons;
   iEvent.getByToken(electronCollectionToken_, electrons);
 
   // Get the electron ID data from the event stream.
@@ -160,9 +160,8 @@ ElectronNtuplerIdDemoPrePHYS14miniAOD::analyze(const edm::Event& iEvent, const e
   passTightId_.clear();     
   
   // Loop over electrons
-  // for (const pat::Electron &el : *electrons) {    
-  const auto& ele_refs = electrons->refVector();
-  for( const auto& el : ele_refs ) {
+  for( View<pat::Electron>::const_iterator el = electrons->begin();
+       el != electrons->end(); el++){
 
     // Kinematics
     if( el->pt() < 10 ) 
@@ -174,9 +173,10 @@ ElectronNtuplerIdDemoPrePHYS14miniAOD::analyze(const edm::Event& iEvent, const e
     phiSC_.push_back( el->superCluster()->phi() );
      
     // Look up the ID decision for this electron in 
-    // the ValueMap object and store it
-    bool isPassVeto  = (*veto_id_decisions)[el];
-    bool isPassTight = (*tight_id_decisions)[el];
+    // the ValueMap object and store it. We need a Ptr object as the key.
+    const Ptr<pat::Electron> elPtr(electrons, el - electrons->begin() );
+    bool isPassVeto  = (*veto_id_decisions)[ elPtr ];
+    bool isPassTight = (*tight_id_decisions)[ elPtr ];
     passVetoId_.push_back( isPassVeto );
     passTightId_.push_back( isPassTight );
 
