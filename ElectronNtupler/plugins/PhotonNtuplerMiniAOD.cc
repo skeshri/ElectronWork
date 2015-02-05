@@ -423,7 +423,9 @@ int PhotonNtuplerMiniAOD::matchToTruth(const pat::Photon &pho,
   findFirstNonPhotonMother(closestPhoton, ancestorPID, ancestorStatus);
 
   // Allowed parens: quarks pdgId 1-5, or a gluon 21
-  std::vector<int> allowedParents { -1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -21, 21 };
+  // Note: in miniAOD, photons are sometimes traced to the incoming protons 
+  //    (pid=2212, status=4)
+  std::vector<int> allowedParents { -1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -21, 21, 2212 };
   if( !(std::find(allowedParents.begin(), 
 		 allowedParents.end(), ancestorPID)
 	!= allowedParents.end()) ){
@@ -432,7 +434,14 @@ int PhotonNtuplerMiniAOD::matchToTruth(const pat::Photon &pho,
       return MATCHED_FROM_PI0;
     else
       return MATCHED_FROM_OTHER_SOURCES;
+    
   }
+  // if we matched an ancestor to a proton, but it is not an incoming
+  // (status 4) proton, then we still consider this photon to be "from other sources"
+  if( ancestorPID==2212 && ancestorStatus==4 ){
+    return MATCHED_FROM_OTHER_SOURCES;
+  }
+
   return MATCHED_FROM_GUDSCB;
    
 }
