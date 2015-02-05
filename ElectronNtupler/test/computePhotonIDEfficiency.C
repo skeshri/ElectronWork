@@ -23,7 +23,7 @@ const WpType wp = WP_LOOSE;
 
 const TString treename = "ntupler/PhotonTree";
 //const TString fname1 = "/afs/cern.ch/user/i/ikrav/workspace/ntuples/GJet_Pt40_PU20bx25_photons_event_structure.root";
-const TString fname1 = "photon_ntuple.root";
+const TString fname1 = "photon_ntuple_mini.root";
 
 bool verbose = false;
 bool smallEventCount = false;
@@ -320,6 +320,7 @@ bool passWorkingPoint(WpType iwp, bool isBarrel, float pt,
 
   bool result = 1
     && hOverE < hOverECut[ieta][iwp]
+    && full5x5_sigmaIetaIeta > 0 // in case miniAOD sets this to zero due to pre-selection of storage
     && full5x5_sigmaIetaIeta < sieieCut[ieta][iwp]
     && chIso < chIsoCut[ieta][iwp]
     && nhIso < nhIso_A[ieta][iwp] + pt * nhIso_B[ieta][iwp]
