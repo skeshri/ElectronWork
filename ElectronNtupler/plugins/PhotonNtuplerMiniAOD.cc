@@ -1,9 +1,9 @@
 // -*- C++ -*-
 //
 // Package:    ElectronWork/ElectronNtupler
-// Class:      PhotonNtuplerAOD
+// Class:      PhotonNtuplerMiniAOD
 // 
-/**\class PhotonNtuplerAOD PhotonNtuplerAOD.cc ElectronWork/PhotonNtuplerAOD/plugins/PhotonNtuplerAOD.cc
+/**\class PhotonNtuplerMiniAOD PhotonNtuplerMiniAOD.cc ElectronWork/PhotonNtuplerMiniAOD/plugins/PhotonNtuplerMiniAOD.cc
 
  Description: [one line class summary]
 
@@ -30,12 +30,13 @@
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-#include "DataFormats/EgammaCandidates/interface/Photon.h"
+//#include "DataFormats/EgammaCandidates/interface/Photon.h"
+#include "DataFormats/PatCandidates/interface/Photon.h"
+
+#include "DataFormats/Common/interface/ValueMap.h"
 
 #include "DataFormats/Candidate/interface/Candidate.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
-
-#include "DataFormats/Common/interface/ValueMap.h"
 
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
@@ -52,10 +53,10 @@
 // class declaration
 //
 
-class PhotonNtuplerAOD : public edm::EDAnalyzer {
+class PhotonNtuplerMiniAOD : public edm::EDAnalyzer {
    public:
-      explicit PhotonNtuplerAOD(const edm::ParameterSet&);
-      ~PhotonNtuplerAOD();
+      explicit PhotonNtuplerMiniAOD(const edm::ParameterSet&);
+      ~PhotonNtuplerMiniAOD();
 
       static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
@@ -74,17 +75,17 @@ class PhotonNtuplerAOD : public edm::EDAnalyzer {
       //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
       //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
-      int matchToTruth(const reco::Photon &pho, 
-		       const edm::Handle<edm::View<reco::GenParticle>>  &genParticles);
+      int matchToTruth(const pat::Photon &pho, 
+            const edm::Handle<edm::View<reco::GenParticle>>  &prunedGenParticles);
 
-      void findFirstNonPhotonMother(const reco::Candidate *particle,
-				    int &ancestorPID, int &ancestorStatus);
+       void findFirstNonPhotonMother(const reco::Candidate *particle,
+				     int &ancestorPID, int &ancestorStatus);
 
       // ----------member data ---------------------------
       edm::EDGetTokenT<reco::VertexCollection> vtxToken_;
-      edm::EDGetTokenT<edm::View<reco::Photon> > photonCollectionToken_;
+      edm::EDGetTokenT<edm::View<pat::Photon> > photonCollectionToken_;
       edm::EDGetTokenT<double> rhoToken_;
-      edm::EDGetTokenT<edm::View<reco::GenParticle> > genParticlesToken_;
+      edm::EDGetTokenT<edm::View<reco::GenParticle> > prunedGenToken_;
       edm::EDGetTokenT<edm::ValueMap<float> > full5x5SigmaIEtaIEtaMapToken_; 
       edm::EDGetTokenT<edm::ValueMap<float> > phoChargedIsolationToken_; 
       edm::EDGetTokenT<edm::ValueMap<float> > phoNeutralHadronIsolationToken_; 
@@ -106,6 +107,7 @@ class PhotonNtuplerAOD : public edm::EDAnalyzer {
   std::vector<Float_t> full5x5_sigmaIetaIeta_;
   std::vector<Float_t> hOverE_;
   std::vector<Float_t> hasPixelSeed_;
+  std::vector<Float_t> r9_;
 
   std::vector<Float_t> isoChargedHadrons_;
   std::vector<Float_t> isoNeutralHadrons_;
@@ -115,14 +117,13 @@ class PhotonNtuplerAOD : public edm::EDAnalyzer {
   std::vector<Float_t> isoNeutralHadronsWithEA_;
   std::vector<Float_t> isoPhotonsWithEA_;
 
-  std::vector<Int_t> isTrue_;
+  std::vector<Int_t>   isTrue_;
 
 };
 
 //
 // constants, enums and typedefs
 //
-
 // Effective areas for photons from Savvas's slides
 // for phys14 PU20bx25, described here:
 // https://indico.cern.ch/event/367861/contribution/3/material/slides/0.pdf
@@ -141,8 +142,6 @@ namespace EffectiveAreas {
     0.0089, 0.0062, 0.0086, 0.0041, 0.0113, 0.0085, 0.0039
   };
 }
-//
-
 
 //
 // static data member definitions
@@ -151,12 +150,11 @@ namespace EffectiveAreas {
 //
 // constructors and destructor
 //
-PhotonNtuplerAOD::PhotonNtuplerAOD(const edm::ParameterSet& iConfig):
+PhotonNtuplerMiniAOD::PhotonNtuplerMiniAOD(const edm::ParameterSet& iConfig):
   vtxToken_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("vertices"))),
-  photonCollectionToken_(consumes<edm::View<reco::Photon> >(iConfig.getParameter<edm::InputTag>("photons"))),
+  photonCollectionToken_(consumes<edm::View<pat::Photon> >(iConfig.getParameter<edm::InputTag>("photons"))),
   rhoToken_(consumes<double> (iConfig.getParameter<edm::InputTag>("rho"))),
-  genParticlesToken_(consumes<edm::View<reco::GenParticle> >
-		     (iConfig.getParameter<edm::InputTag>("genParticles"))),
+  prunedGenToken_(consumes<edm::View<reco::GenParticle> >(iConfig.getParameter<edm::InputTag>("prunedGenParticles"))),
   full5x5SigmaIEtaIEtaMapToken_(consumes <edm::ValueMap<float> >
 				(iConfig.getParameter<edm::InputTag>("full5x5SigmaIEtaIEtaMap"))),
   phoChargedIsolationToken_(consumes <edm::ValueMap<float> >
@@ -181,6 +179,7 @@ PhotonNtuplerAOD::PhotonNtuplerAOD(const edm::ParameterSet& iConfig):
   photonTree_->Branch("hOverE",  &hOverE_);
   photonTree_->Branch("hasPixelSeed"           ,  &hasPixelSeed_);
   photonTree_->Branch("full5x5_sigmaIetaIeta"  , &full5x5_sigmaIetaIeta_);
+  photonTree_->Branch("r9",  &r9_);
   photonTree_->Branch("isoChargedHadrons"      , &isoChargedHadrons_);
   photonTree_->Branch("isoNeutralHadrons"      , &isoNeutralHadrons_);
   photonTree_->Branch("isoPhotons"             , &isoPhotons_);
@@ -189,12 +188,12 @@ PhotonNtuplerAOD::PhotonNtuplerAOD(const edm::ParameterSet& iConfig):
   photonTree_->Branch("isoNeutralHadronsWithEA"      , &isoNeutralHadronsWithEA_);
   photonTree_->Branch("isoPhotonsWithEA"             , &isoPhotonsWithEA_);
 
-  photonTree_->Branch("isTrue"             , &isTrue_);
+  photonTree_->Branch("isTrue"                 , &isTrue_);
  
 }
 
 
-PhotonNtuplerAOD::~PhotonNtuplerAOD()
+PhotonNtuplerMiniAOD::~PhotonNtuplerMiniAOD()
 {
  
    // do anything here that needs to be done at desctruction time
@@ -209,17 +208,14 @@ PhotonNtuplerAOD::~PhotonNtuplerAOD()
 
 // ------------ method called for each event  ------------
 void
-PhotonNtuplerAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+PhotonNtuplerMiniAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace std;
   using namespace edm;
-  using namespace reco;
+  // using namespace reco;
   
-  // // An object needed for isolation calculations
-  // GEDPhoIDTools *GEDIdTool = new GEDPhoIDTools(iEvent);
-
   // Get photon collection
-  edm::Handle<edm::View<reco::Photon> > collection;
+  edm::Handle<edm::View<pat::Photon> > collection;
   iEvent.getByToken(photonCollectionToken_, collection);
 
   // Get PV
@@ -229,14 +225,14 @@ PhotonNtuplerAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   //const reco::Vertex &pv = vertices->front();
   nPV_    = vertices->size();
 
-  VertexCollection::const_iterator firstGoodVertex = vertices->end();
+  reco::VertexCollection::const_iterator firstGoodVertex = vertices->end();
   int firstGoodVertexIdx = 0;
-  for (VertexCollection::const_iterator vtx = vertices->begin(); 
+  for (reco::VertexCollection::const_iterator vtx = vertices->begin(); 
        vtx != vertices->end(); ++vtx, ++firstGoodVertexIdx) {
     // Replace isFake() for miniAOD because it requires tracks and miniAOD vertices don't have tracks:
     // Vertex.h: bool isFake() const {return (chi2_==0 && ndof_==0 && tracks_.empty());}
-    if (  /*!vtx->isFake() &&*/ 
-        !(vtx->chi2()==0 && vtx->ndof()==0) 
+    if (  !vtx->isFake()
+	  //!(vtx->chi2()==0 && vtx->ndof()==0)  // This line is for AOD
         &&  vtx->ndof()>=4. && vtx->position().Rho()<=2.0
         && fabs(vtx->position().Z())<=24.0) {
       firstGoodVertex = vtx;
@@ -247,14 +243,14 @@ PhotonNtuplerAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   if ( firstGoodVertex==vertices->end() )
     return; // skip event if there are no good PVs
 
+  // Pruned particles are the one containing "important" stuff
+  Handle<edm::View<reco::GenParticle> > prunedGenParticles;
+  iEvent.getByToken(prunedGenToken_,prunedGenParticles);
+  
   // Get rho
   edm::Handle< double > rhoH;
   iEvent.getByToken(rhoToken_,rhoH);
   rho_ = *rhoH;
-
-  // Get generator level info
-  Handle<edm::View<reco::GenParticle> > genParticles;
-  iEvent.getByToken(genParticlesToken_,genParticles);
 
   // Get the full5x5 sieie map
   edm::Handle<edm::ValueMap<float> > full5x5SigmaIEtaIEtaMap;
@@ -276,6 +272,7 @@ PhotonNtuplerAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   full5x5_sigmaIetaIeta_.clear();
   hOverE_.clear();
   hasPixelSeed_.clear();
+  r9_.clear();
   isoChargedHadrons_.clear();
   isoNeutralHadrons_.clear();
   isoPhotons_.clear();
@@ -290,10 +287,10 @@ PhotonNtuplerAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   
   // for( const auto& pho : pho_refs ) {
 
-  for( View<reco::Photon>::const_iterator pho = collection->begin();
+  for( View<pat::Photon>::const_iterator pho = collection->begin();
        pho != collection->end(); pho++){
     
-    // Kinematics
+    // Kinematics (nobody uses photons below 15 GeV, and they are not stored in miniAOD anyways)
     if( pho->pt() < 15 ) 
       continue;
     
@@ -303,15 +300,17 @@ PhotonNtuplerAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     phi_ .push_back( pho->superCluster()->phi() );
 
     //const edm::Ptr<reco::Photon> phoPtr( pho );
-    const edm::Ptr<reco::Photon> phoPtr( collection, pho - collection->begin() );
+    const edm::Ptr<pat::Photon> phoPtr( collection, pho - collection->begin() );
 
     full5x5_sigmaIetaIeta_ .push_back( (*full5x5SigmaIEtaIEtaMap)[ phoPtr ] );
     hOverE_                .push_back( pho->hadTowOverEm() );
     hasPixelSeed_          .push_back( pho->hasPixelSeed() );
+    r9_                    .push_back( pho->userFloat("r9_NoZS"));
 
     isoChargedHadrons_ .push_back( (*phoChargedIsolationMap)[phoPtr] );
     isoNeutralHadrons_ .push_back( (*phoNeutralHadronIsolationMap)[phoPtr] );
     isoPhotons_        .push_back( (*phoPhotonIsolationMap)[phoPtr] );
+
     // Compute isolation with effective area correction for PU
     // Find eta bin first. If eta>2.5, the last eta bin is used.
     int etaBin = 0; 
@@ -325,7 +324,7 @@ PhotonNtuplerAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     isoChargedHadronsWithEA_ .push_back( std::max( (float)0.0, (*phoChargedIsolationMap)      [phoPtr] 
 						  - rho_ * EffectiveAreas::areaChargedHadrons[etaBin] ) );
 
-    isTrue_.push_back( matchToTruth(*pho, genParticles) );
+    isTrue_.push_back( matchToTruth(*pho, prunedGenParticles) );
 
    }
    
@@ -337,20 +336,20 @@ PhotonNtuplerAOD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
 // ------------ method called once each job just before starting event loop  ------------
 void 
-PhotonNtuplerAOD::beginJob()
+PhotonNtuplerMiniAOD::beginJob()
 {
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
-PhotonNtuplerAOD::endJob() 
+PhotonNtuplerMiniAOD::endJob() 
 {
 }
 
 // ------------ method called when starting to processes a run  ------------
 /*
 void 
-PhotonNtuplerAOD::beginRun(edm::Run const&, edm::EventSetup const&)
+PhotonNtuplerMiniAOD::beginRun(edm::Run const&, edm::EventSetup const&)
 {
 }
 */
@@ -358,7 +357,7 @@ PhotonNtuplerAOD::beginRun(edm::Run const&, edm::EventSetup const&)
 // ------------ method called when ending the processing of a run  ------------
 /*
 void 
-PhotonNtuplerAOD::endRun(edm::Run const&, edm::EventSetup const&)
+PhotonNtuplerMiniAOD::endRun(edm::Run const&, edm::EventSetup const&)
 {
 }
 */
@@ -366,7 +365,7 @@ PhotonNtuplerAOD::endRun(edm::Run const&, edm::EventSetup const&)
 // ------------ method called when starting to processes a luminosity block  ------------
 /*
 void 
-PhotonNtuplerAOD::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+PhotonNtuplerMiniAOD::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
 {
 }
 */
@@ -374,14 +373,14 @@ PhotonNtuplerAOD::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSe
 // ------------ method called when ending the processing of a luminosity block  ------------
 /*
 void 
-PhotonNtuplerAOD::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+PhotonNtuplerMiniAOD::endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
 {
 }
 */
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
-PhotonNtuplerAOD::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+PhotonNtuplerMiniAOD::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //The following says we do not know what parameters are allowed so do no validation
   // Please change this to state exactly what you do use, even if it is no parameters
   edm::ParameterSetDescription desc;
@@ -389,9 +388,9 @@ PhotonNtuplerAOD::fillDescriptions(edm::ConfigurationDescriptions& descriptions)
   descriptions.addDefault(desc);
 }
 
-int PhotonNtuplerAOD::matchToTruth(const reco::Photon &pho, 
-				   const edm::Handle<edm::View<reco::GenParticle>>  
-				   &genParticles)
+int PhotonNtuplerMiniAOD::matchToTruth(const pat::Photon &pho, 
+				       const edm::Handle<edm::View<reco::GenParticle>>  
+				       &prunedGenParticles)
 {
   // 
   // Explicit loop and geometric matching method 
@@ -400,8 +399,8 @@ int PhotonNtuplerAOD::matchToTruth(const reco::Photon &pho,
   // Find the closest status 1 gen photon to the reco photon
   double dR = 999;
   const reco::Candidate *closestPhoton = 0;
-  for(size_t i=0; i<genParticles->size();i++){
-    const reco::Candidate *particle = &(*genParticles)[i];
+  for(size_t i=0; i<prunedGenParticles->size();i++){
+    const reco::Candidate *particle = &(*prunedGenParticles)[i];
     // Drop everything that is not photon or not status 1
     if( abs(particle->pdgId()) != 22 || particle->status() != 1 )
       continue;
@@ -438,11 +437,11 @@ int PhotonNtuplerAOD::matchToTruth(const reco::Photon &pho,
    
 }
 
-void PhotonNtuplerAOD::findFirstNonPhotonMother(const reco::Candidate *particle,
-						int &ancestorPID, int &ancestorStatus){
+void PhotonNtuplerMiniAOD::findFirstNonPhotonMother(const reco::Candidate *particle,
+						      int &ancestorPID, int &ancestorStatus){
   
   if( particle == 0 ){
-    printf("PhotonNtuplerAOD: ERROR! null candidate pointer, this should never happen\n");
+    printf("PhotonNtuplerMiniAOD: ERROR! null candidate pointer, this should never happen\n");
     return;
   }
 
@@ -460,4 +459,4 @@ void PhotonNtuplerAOD::findFirstNonPhotonMother(const reco::Candidate *particle,
 
 
 //define this as a plug-in
-DEFINE_FWK_MODULE(PhotonNtuplerAOD);
+DEFINE_FWK_MODULE(PhotonNtuplerMiniAOD);
