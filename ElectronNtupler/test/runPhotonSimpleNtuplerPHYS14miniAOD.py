@@ -35,6 +35,8 @@ process.source = cms.Source ("PoolSource",fileNames = cms.untracked.vstring(
 #
 
 process.photonIDValueMapProducer = cms.EDProducer('PhotonIDValueMapProducer',
+                                          ebReducedRecHitCollection = cms.InputTag("reducedEgamma:reducedEBRecHits"),
+                                          eeReducedRecHitCollection = cms.InputTag("reducedEgamma:reducedEERecHits"),
                                           vertices = cms.InputTag("offlineSlimmedPrimaryVertices"),
                                           pfCandidates = cms.InputTag("packedPFCandidates"),
                                           src = cms.InputTag('slimmedPhotons'),
