@@ -438,7 +438,7 @@ int PhotonNtuplerMiniAOD::matchToTruth(const pat::Photon &pho,
   }
   // if we matched an ancestor to a proton, but it is not an incoming
   // (status 4) proton, then we still consider this photon to be "from other sources"
-  if( ancestorPID==2212 && ancestorStatus==4 ){
+  if( ancestorPID==2212 && ancestorStatus!=4 ){
     return MATCHED_FROM_OTHER_SOURCES;
   }
 
