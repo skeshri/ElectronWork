@@ -23,7 +23,7 @@ const WpType wp = WP_LOOSE;
 
 const TString treename = "ntupler/PhotonTree";
 //const TString fname1 = "/afs/cern.ch/user/i/ikrav/workspace/ntuples/GJet_Pt40_PU20bx25_photons_event_structure.root";
-const TString fname1 = "photon_ntuple_mini.root";
+const TString fname1 = "photon_ntuple.root";
 
 bool verbose = false;
 bool smallEventCount = false;
@@ -283,28 +283,28 @@ void computePhotonIDEfficiency()
 }
 
 const float hOverECut[2][nWP] = 
-  { { 0.032, 0.020, 0.012 },
-    { 0.023, 0.011, 0.011 } };
+  { { 0.0322882, 0.0195331, 0.0115014 },
+    { 0.0226555, 0.0108988, 0.0107019 } };
 
 const float sieieCut[2][nWP] = 
-  { {0.0100, 0.0099, 0.0098},
-    {0.0270, 0.0269, 0.0264} };
+  { {0.00995483, 0.00993551, 0.00984631},
+    {0.0269592, 0.0269045, 0.026399} };
 
 const float chIsoCut[2][nWP] = 
-  { {2.94, 2.62, 1.91},
-    {3.07, 1.40, 1.26} };
+  { {2.94279, 2.61706, 1.90634},
+    {3.07267, 1.40267, 1.2556} };
 
 const float nhIso_A[2][nWP] = 
-  { {3.16, 2.69, 2.55},
-    {17.16, 4.92, 2.71} };
+  { {3.15819, 2.69467, 2.5482},
+    {17.1632, 4.91651, 2.70834} };
 
 const float nhIso_B[2][nWP] = 
   { {0.0023, 0.0023, 0.0023},
     {0.0116, 0.0116, 0.0116} };
 
 const float phIso_A[2][nWP] = 
-  { {4.43, 1.35, 1.29},
-    {2.11, 2.11, 1.91} };
+  { {4.43365, 1.34528, 1.29427},
+    {2.10842, 2.10055, 1.90084} };
 
 const float phIso_B[2][nWP] = 
   { {0.0004, 0.0004, 0.0004},
