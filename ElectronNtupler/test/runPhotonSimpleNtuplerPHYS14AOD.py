@@ -38,16 +38,8 @@ process.source = cms.Source ("PoolSource",fileNames = cms.untracked.vstring(
 # Run some stuff to produce value maps needed for IDs
 #
 
-process.photonIDValueMapProducer = cms.EDProducer('PhotonIDValueMapProducer',
-                                          ebReducedRecHitCollection = cms.InputTag("reducedEcalRecHitsEB"),
-                                          eeReducedRecHitCollection = cms.InputTag("reducedEcalRecHitsEE"),
-                                          particleBasedIsolation = cms.InputTag("particleBasedIsolation","gedPhotons"),
-                                          vertices = cms.InputTag("offlinePrimaryVertices"),
-                                          pfCandidates = cms.InputTag("particleFlow"),
-                                          esReducedRecHitCollection = cms.InputTag("ecalPreshowerRecHit","EcalRecHitsES"),
-                                          src = cms.InputTag('gedPhotons'),
-                                          dataFormat = cms.string('RECO')
-)
+process.load("RecoEgamma/PhotonIdentification/PhotonIDValueMapProducer_cfi")
+
 
 #
 # Configure an example module for user analysis of electrons

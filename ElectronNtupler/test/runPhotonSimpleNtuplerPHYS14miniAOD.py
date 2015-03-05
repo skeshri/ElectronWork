@@ -34,15 +34,7 @@ process.source = cms.Source ("PoolSource",fileNames = cms.untracked.vstring(
 # Run some stuff to produce value maps needed for IDs
 #
 
-process.photonIDValueMapProducer = cms.EDProducer('PhotonIDValueMapProducer',
-                                          ebReducedRecHitCollection = cms.InputTag("reducedEgamma:reducedEBRecHits"),
-                                          eeReducedRecHitCollection = cms.InputTag("reducedEgamma:reducedEERecHits"),
-                                          vertices = cms.InputTag("offlineSlimmedPrimaryVertices"),
-                                          pfCandidates = cms.InputTag("packedPFCandidates"),
-                                          src = cms.InputTag('slimmedPhotons'),
-                                          # Use PAT format for miniAOD:
-                                          dataFormat = cms.string('PAT')
-)
+process.load("RecoEgamma/PhotonIdentification/PhotonIDValueMapProducer_cfi")
 
 #
 # Configure an example module for user analysis of electrons
