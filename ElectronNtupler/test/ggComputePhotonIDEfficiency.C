@@ -12,6 +12,14 @@
 
 #include <vector>
 
+// A flag to print some info when processing the first photon
+bool firstBarrelPhoton = true;
+bool firstEndcapPhoton = true;
+
+// Use only events when there is one and only one photon matching MC truth?
+// (like Savvas does)
+bool restrictToOnePhoton = false;
+
 const int nWP = 3;
 enum WpType { WP_LOOSE = 0,
 	      WP_MEDIUM, 
@@ -28,7 +36,8 @@ const WpType wp = WP_TIGHT;
 
 const TString treename = "ggNtuplizer/EventTree";
 // const TString fname1 = "~/workspace/ntuples/ggNtuple_GJets_HT-100to200_singleFile.root";
-const TString fname1 = "/tmp/rslu/job_phys14_gjet_pt40_20bx25.root";
+//const TString fname1 = "/tmp/rslu/job_phys14_gjet_pt40_20bx25.root";
+const TString fname1 = "root://eoscms.cern.ch//eos/cms/store/group/phys_egamma/ikrav/common_ntuples/PHYS14/job_phys14_gjet_pt40_20bx25.root";
 
 bool verbose = false;
 bool smallEventCount = false;
@@ -50,6 +59,13 @@ bool isMatched(float pEta, float pPhi,
 	       std::vector<float> *mcEta,
 	       std::vector<float> *mcPhi);
 
+bool isMatchedV2(float pEta, float pPhi,
+		 std::vector<int> *mcPID,
+		 std::vector<int> *mcMomPID,
+		 std::vector<int> *mcStatus,
+		 std::vector<float> *mcEta,
+		 std::vector<float> *mcPhi);
+
 void ggComputePhotonIDEfficiency()
 {
 
@@ -60,7 +76,8 @@ void ggComputePhotonIDEfficiency()
   //
   // Find the tree
   //
-  TFile *file1 = new TFile(fname1);
+  // TFile *file1 = new TFile(fname1); // this doesn't seem to work with EOS and xrood...
+  TFile *file1 = TFile::Open(fname1);
   if( !file1 )
     assert(0);
   TTree *tree = (TTree*)file1->Get(treename);
@@ -117,9 +134,9 @@ void ggComputePhotonIDEfficiency()
   tree->SetBranchAddress("nPho", &nPho, &b_nPho);
   tree->SetBranchAddress("rho", &rho, &b_rho);
   tree->SetBranchAddress("phoEt", &phoEt, &b_phoEt);
-  tree->SetBranchAddress("phoSCEta", &phoSCEta, &b_phoSCEta);
+  tree->SetBranchAddress("phoEta", &phoSCEta, &b_phoSCEta);
   tree->SetBranchAddress("phoPhi", &phoPhi, &b_phoPhi);
-  tree->SetBranchAddress("phoSigmaIEtaIEta_2012", &phoSigmaIEtaIEta_2012, &b_phoSigmaIEtaIEta_2012);
+  tree->SetBranchAddress("phoSigmaIEtaIEta_2012", &phoSigmaIEtaIEta_2012, &b_phoSigmaIEtaIEta_2012); 
   tree->SetBranchAddress("phoHoverE", &phoHoverE, &b_phoHoverE);
   tree->SetBranchAddress("phoPFPhoIso", &phoPFPhoIso, &b_phoPFPhoIso);
   tree->SetBranchAddress("phoPFChIso", &phoPFChIso, &b_phoPFChIso);
@@ -137,10 +154,14 @@ void ggComputePhotonIDEfficiency()
   //
   TH2D *hSignal = new TH2D("hSignal","",200,-5,5,185,15,200);
   TH2D *hBackground = new TH2D("hBackground","",200,-5,5,185,15,200);
-  
+  int nEvents = 0;
+  int nEventsWithOnePhotonMatched = 0;
+  int nPhotons = 0;
+  int nPhotonsWithOnePhotonMatched = 0;
+
   UInt_t maxEvents = tree->GetEntries();
   if( smallEventCount )
-    maxEvents = 1000;
+    maxEvents = 100000;
   if(verbose)
     printf("Start loop over events for WEIGHTS, total events = %lld\n", 
            tree->GetEntries() );
@@ -150,7 +171,8 @@ void ggComputePhotonIDEfficiency()
       printf("."); fflush(stdout);
     }
     Long64_t tentry = tree->LoadTree(ievent);
-    
+    nEvents++;
+
     // Load the value of the number of the photons in the event    
     b_nPho->GetEntry(tentry);
 
@@ -166,16 +188,39 @@ void ggComputePhotonIDEfficiency()
     b_mcEta->GetEntry(tentry);
     b_mcPhi->GetEntry(tentry);
 
-    // Loop over photons
+    // Loop over photons #1: discard all events that contain more than 1 matched photon
+    int nMatched = 0;
     for(int ipho = 0; ipho < nPho; ipho++){
+      nPhotons++;
+      
+      // // Preselection
+      // if( !(phoEt->at(ipho) > ptMin && phoEt->at(ipho) < ptMax ) ) continue;
+      // if( fabs(phoSCEta->at(ipho))>2.5) continue;
+      bool isTrue = isMatchedV2( phoSCEta->at(ipho), phoPhi->at(ipho),
+				 mcPID, mcMomPID, mcStatus,
+				 mcEta, mcPhi);
+
+      if( isTrue ) 
+	nMatched++;
+    }// end loop over photons
+
+    if( restrictToOnePhoton && (nMatched != 1) ) continue;
+    nEventsWithOnePhotonMatched++;
+
+    // Loop over photons #2: fill the weights histograms
+    for(int ipho = 0; ipho < nPho; ipho++){
+      nPhotonsWithOnePhotonMatched++;
       
       // Preselection
       if( !(phoEt->at(ipho) > ptMin && phoEt->at(ipho) < ptMax ) ) continue;
-      if( !( phohasPixelSeed->at(ipho) == 0 ) ) continue;
+      if( fabs(phoSCEta->at(ipho))>1.4442 && fabs(phoSCEta->at(ipho))<1.566) continue;
+      if( fabs(phoSCEta->at(ipho))>2.5) continue;
+      // Do not apply electron veto, as agreed
+      // if( !( phohasPixelSeed->at(ipho) == 0 ) ) continue;
       // Match to MC truth
-      bool isTrue = isMatched( phoSCEta->at(ipho), phoPhi->at(ipho),
-			       mcPID, mcMomPID, mcStatus,
-			       mcEta, mcPhi);
+      bool isTrue = isMatchedV2( phoSCEta->at(ipho), phoPhi->at(ipho),
+				 mcPID, mcMomPID, mcStatus,
+				 mcEta, mcPhi);
 
       if( isTrue ) {
 	hSignal->Fill( phoSCEta->at(ipho), phoEt->at(ipho) );
@@ -207,9 +252,9 @@ void ggComputePhotonIDEfficiency()
   double sumBackNumEEErr2   = 0;
 
   int nSigBarrel = 0;
-  float nSigBarrelWeighted = 0;
+  double nSigBarrelWeighted = 0;
   int nBgBarrel  = 0;
-  float nBgBarrelWeighted  = 0;
+  double nBgBarrelWeighted  = 0;
 
   // 
   // The second loop over events is for efficiency computation
@@ -247,12 +292,32 @@ void ggComputePhotonIDEfficiency()
     b_mcEta->GetEntry(tentry);
     b_mcPhi->GetEntry(tentry);
 
-    // Loop over photons
+    // Loop over photons #1: discard all events that contain more than 1 matched photon
+    int nMatched = 0;
+    for(int ipho = 0; ipho < nPho; ipho++){
+      
+      // // Preselection
+      // if( !(phoEt->at(ipho) > ptMin && phoEt->at(ipho) < ptMax ) ) continue;
+      // if( fabs(phoSCEta->at(ipho))>2.5) continue;
+      bool isTrue = isMatchedV2( phoSCEta->at(ipho), phoPhi->at(ipho),
+				 mcPID, mcMomPID, mcStatus,
+				 mcEta, mcPhi);
+
+      if( isTrue ) 
+	nMatched++;
+    }// end loop over photons
+
+    if( restrictToOnePhoton && (nMatched != 1) ) continue;
+
+    // Loop over photons #2: compute the pass/total sums
     for(int ipho = 0; ipho < nPho; ipho++){
       
       // Preselection
       if( !(phoEt->at(ipho) > ptMin && phoEt->at(ipho) < ptMax ) ) continue;
-      if( !( phohasPixelSeed->at(ipho) == 0 ) ) continue;
+      if( fabs(phoSCEta->at(ipho))>1.4442 && fabs(phoSCEta->at(ipho))<1.566) continue;
+      if( fabs(phoSCEta->at(ipho))>2.5) continue;
+      // Do not apply electron veto, as agreed
+      // if( !( phohasPixelSeed->at(ipho) == 0 ) ) continue;
 
       bool isBarrel = (fabs(phoSCEta->at(ipho)) < barrelEtaLimit);
       // Correct for pile-up
@@ -273,9 +338,9 @@ void ggComputePhotonIDEfficiency()
 				    chIsoWithEA, nhIsoWithEA, phIsoWithEA);
 
       // Match to MC truth
-      bool isTrue = isMatched( phoSCEta->at(ipho), phoPhi->at(ipho),
-			       mcPID, mcMomPID, mcStatus,
-			       mcEta, mcPhi);
+      bool isTrue = isMatchedV2( phoSCEta->at(ipho), phoPhi->at(ipho),
+				 mcPID, mcMomPID, mcStatus,
+				 mcEta, mcPhi);
       
       // We reweight signal and background (separately) to have 
       // a flat pt and eta distribution. This step is a matter of definition.
@@ -325,10 +390,18 @@ void ggComputePhotonIDEfficiency()
 	  
 	  sumBackDenomEB += weight;
 	  sumBackDenomEBErr2 += weight*weight;
+	  // if( phoEt->at(ipho) > 55.250197 && phoEt->at(ipho) < 55.250199 ) // 55.250198
+	  //   printf("Mismatched case: pt= %f decision= %d HoE= %f  see= %f  ch= %f  nh= %f  ph= %f \n", 
+	  // 	   phoEt->at(ipho), pass,  phoHoverE->at(ipho) ,
+	  // 	   phoSigmaIEtaIEta_2012->at(ipho) ,
+	  // 	   chIsoWithEA, nhIsoWithEA, phIsoWithEA);
 	  if( pass ) {
 	    sumBackNumEB += weight;
 	    sumBackNumEBErr2 += weight*weight;
 	  }
+	  // else {
+	  //   printf("Bg barrel photon failed cuts: pt=%f   w=%f\n", phoEt->at(ipho), weight);
+	  // }
 	} else {
 	  sumBackDenomEE += weight;
 	  sumBackDenomEEErr2 += weight*weight;	  
@@ -383,6 +456,10 @@ void ggComputePhotonIDEfficiency()
   printf("\n");
   printf(" signal photons: %d    weighted:   %.1f\n", nSigBarrel, nSigBarrelWeighted);
   printf(" backgr photons: %d    weighted:   %.1f\n", nBgBarrel, nBgBarrelWeighted);
+  printf(" nEvents                      = %d\n", nEvents);
+  printf(" nPhotons                     = %d\n", nPhotons);
+  printf(" nEventsWithOnePhotonMatched  = %d\n", nEventsWithOnePhotonMatched);
+  printf(" nPhotonsWithOnePhotonMatched = %d\n", nPhotonsWithOnePhotonMatched);
   
   TCanvas *c2 = new TCanvas("c2","c2",10,10,900, 600);
   c2->Divide(3,1);
@@ -399,14 +476,24 @@ const int nEtaBinsEA = 7;
 const float etaBinLimits[nEtaBinsEA+1] = {
   0.0, 1.0, 1.479, 2.0, 2.2, 2.3, 2.4, 2.5};
 
+// const float areaPhotons[nEtaBinsEA] = {
+//   0.0894, 0.0750, 0.0423, 0.0561, 0.0882, 0.1144, 0.1684
+// };
+// const float areaNeutralHadrons[nEtaBinsEA] = {
+//   0.049, 0.0108, 0.0019, 0.0037, 0.0062, 0.0130, 0.1699
+// };
+// const float areaChargedHadrons[nEtaBinsEA] = {
+//   0.0089, 0.0062, 0.0086, 0.0041, 0.0113, 0.0085, 0.0039
+// };
+
 const float areaPhotons[nEtaBinsEA] = {
-  0.0894, 0.0750, 0.0423, 0.0561, 0.0882, 0.1144, 0.1684
+  0.0894361 ,  0.0750406 ,  0.0422692 ,  0.0561305 ,  0.0881777 ,  0.114391  , 0.168394    
 };
 const float areaNeutralHadrons[nEtaBinsEA] = {
-  0.049, 0.0108, 0.0019, 0.0037, 0.0062, 0.0130, 0.1699
+  0.00491696 ,  0.0108215  ,  0.00185819 ,  0.0036691  ,  0.00619475 ,  0.0130409  ,  0.169902   
 };
 const float areaChargedHadrons[nEtaBinsEA] = {
-  0.0089, 0.0062, 0.0086, 0.0041, 0.0113, 0.0085, 0.0039
+  0.00885603 ,  0.00615045 ,  0.00861475 ,  0.00412423 ,  0.0113191  ,  0.00846383 ,  0.0038625  
 };
 
 float computeIso(IsoType isoType, float isoVal, float eta, float rho){
@@ -433,33 +520,62 @@ float computeIso(IsoType isoType, float isoVal, float eta, float rho){
 
 
 // ID cuts and code
+// const float hOverECut[2][nWP] = 
+//   { { 0.032, 0.020, 0.012 },
+//     { 0.023, 0.011, 0.011 } };
+
+// const float sieieCut[2][nWP] = 
+//   { {0.0100, 0.0099, 0.0098},
+//     {0.0270, 0.0269, 0.0264} };
+
+// const float chIsoCut[2][nWP] = 
+//   { {2.94, 2.62, 1.91},
+//     {3.07, 1.40, 1.26} };
+
+// const float nhIso_A[2][nWP] = 
+//   { {3.16, 2.69, 2.55},
+//     {17.16, 4.92, 2.71} };
+
+// const float nhIso_B[2][nWP] = 
+//   { {0.0023, 0.0023, 0.0023},
+//     {0.0116, 0.0116, 0.0116} };
+
+// const float phIso_A[2][nWP] = 
+//   { {4.43, 1.35, 1.29},
+//     {2.11, 2.11, 1.91} };
+
+// const float phIso_B[2][nWP] = 
+//   { {0.0004, 0.0004, 0.0004},
+//     {0.0037, 0.0037, 0.0037} };
+
 const float hOverECut[2][nWP] = 
-  { { 0.032, 0.020, 0.012 },
-    { 0.023, 0.011, 0.011 } };
+  { { 0.0322882, 0.0195331, 0.0115014 },
+    { 0.0226555, 0.0108988, 0.0107019 } };
 
 const float sieieCut[2][nWP] = 
-  { {0.0100, 0.0099, 0.0098},
-    {0.0270, 0.0269, 0.0264} };
+  { {0.00995483, 0.00993551, 0.00984631},
+    {0.0269592, 0.0269045, 0.026399} };
 
 const float chIsoCut[2][nWP] = 
-  { {2.94, 2.62, 1.91},
-    {3.07, 1.40, 1.26} };
+  { {2.94279, 2.61706, 1.90634},
+    {3.07267, 1.40267, 1.2556} };
 
 const float nhIso_A[2][nWP] = 
-  { {3.16, 2.69, 2.55},
-    {17.16, 4.92, 2.71} };
+  { {3.15819, 2.69467, 2.5482},
+    {17.1632, 4.91651, 2.70834} };
 
 const float nhIso_B[2][nWP] = 
   { {0.0023, 0.0023, 0.0023},
     {0.0116, 0.0116, 0.0116} };
 
 const float phIso_A[2][nWP] = 
-  { {4.43, 1.35, 1.29},
-    {2.11, 2.11, 1.91} };
+  { {4.43365, 1.34528, 1.29427},
+    {2.10842, 2.10055, 1.90084} };
 
 const float phIso_B[2][nWP] = 
   { {0.0004, 0.0004, 0.0004},
     {0.0037, 0.0037, 0.0037} };
+
 
 bool passWorkingPoint(WpType iwp, bool isBarrel, float pt,
 		      float hOverE, float full5x5_sigmaIetaIeta, 
@@ -476,7 +592,28 @@ bool passWorkingPoint(WpType iwp, bool isBarrel, float pt,
     && chIso < chIsoCut[ieta][iwp]
     && nhIso < nhIso_A[ieta][iwp] + pt * nhIso_B[ieta][iwp]
     && phIso < phIso_A[ieta][iwp] + pt * phIso_B[ieta][iwp] ;
-  
+
+ // Print information the first time we apply cuts to a photon
+  bool toPrint = firstBarrelPhoton || firstEndcapPhoton;
+  if( toPrint ){
+    TString ecalPart = "BARREL";
+    if( !isBarrel )
+      ecalPart = "ENDCAP";
+    printf("\nProcessing the first photon. Working point %s. %s. Cut values:\n",
+	   ecalPart.Data(), wpName[iwp].Data());
+    printf("   H/E   < %f \n", hOverECut[ieta][iwp]);
+    printf("   Sieie < %f \n", sieieCut[ieta][iwp]);
+    printf("   charged isolation < %f \n", chIsoCut[ieta][iwp]);
+    printf("   neu had isolation < %f + pt * %f\n", nhIso_A[ieta][iwp],
+	   nhIso_B[ieta][iwp]);
+    printf("   photon  isolation < %f + pt * %f\n", phIso_A[ieta][iwp],
+	   phIso_B[ieta][iwp]);
+    if( isBarrel )
+      firstBarrelPhoton = false;
+    else
+      firstEndcapPhoton = false;
+  }
+   
   return result;
 }
 
@@ -535,3 +672,41 @@ bool isMatched(float pEta, float pPhi,
   return isMatched;
 }
 
+bool isMatchedV2(float pEta, float pPhi,
+		 std::vector<int> *mcPID,
+		 std::vector<int> *mcMomPID,
+		 std::vector<int> *mcStatus,
+		 std::vector<float> *mcEta,
+		 std::vector<float> *mcPhi){
+  
+  bool isMatched = false;
+  if(verbose) printf("Check match for photon eta= %f   phi= %f\n", pEta, pPhi);
+
+  for(uint imc = 0; imc < (*mcPID).size(); imc++){
+
+    if((*mcStatus)[imc] != 1)continue; 
+    if((*mcPID)[imc] != 22)continue;	  
+    if((fabs((*mcMomPID)[imc]) !=21) 
+       && (fabs((*mcMomPID)[imc]) !=1)
+       && (fabs((*mcMomPID)[imc]) !=2)
+       && (fabs((*mcMomPID)[imc]) !=3)
+       && (fabs((*mcMomPID)[imc]) !=4)
+       && (fabs((*mcMomPID)[imc]) !=5)
+       && (fabs((*mcMomPID)[imc]) !=6) )continue;
+	
+    double meta = (*mcEta)[imc];
+    double mphi = (*mcPhi)[imc];	  
+	  
+    TVector3 mcphoton;
+    TVector3 recoPHOTOn;
+	  
+    mcphoton.SetPtEtaPhi(1.0,meta,mphi);
+    recoPHOTOn.SetPtEtaPhi(1.0,pEta,pPhi);			       
+    double DR = mcphoton.DrEtaPhi(recoPHOTOn);
+    if(DR < 0.1 ){
+      isMatched = true;
+    }
+  } // end loop over MC particles
+
+  return isMatched;
+}

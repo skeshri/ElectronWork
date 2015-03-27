@@ -19,17 +19,19 @@ const TString wpName[nWP] =
   {"Loose", "Medium", "Tight"};
 
 // Use here one of the WpType values
-const WpType wp = WP_LOOSE;
+const WpType wp = WP_TIGHT;
 
 const TString treename = "ntupler/PhotonTree";
-//const TString fname1 = "/afs/cern.ch/user/i/ikrav/workspace/ntuples/GJet_Pt40_PU20bx25_photons_event_structure.root";
-const TString fname1 = "photon_ntuple.root";
+const TString fname1 = "/afs/cern.ch/user/i/ikrav/workspace/ntuples/PHYS14/GJet_Pt40_PU20bx25_photons_event_structure.root";
+//const TString fname1 = "photon_ntuple.root";
 
 bool verbose = false;
 bool smallEventCount = false;
 
 const int nEtaBins = 2;
 
+const float ptmin = 30;
+const float ptmax = 200;
 
 
 bool passWorkingPoint(WpType wp, bool isBarrel, float pt,
@@ -54,9 +56,9 @@ void computePhotonIDEfficiency()
     assert(0);
 
   // Weight histograms
-  TH2D *hSignal = new TH2D("hSignal","",200,-5,5,185,15,200);
-  TH2D *hBackground = new TH2D("hBackground","",200,-5,5,185,15,200);
-  TCut miscCut = "hasPixelSeed==0";
+  TH2D *hSignal = new TH2D("hSignal","",200,-5,5,185,ptmin,ptmax);
+  TH2D *hBackground = new TH2D("hBackground","",200,-5,5,185,ptmin,ptmax);
+  TCut miscCut = "1"; //"hasPixelSeed==0";
   TCut sigCut  = "isTrue==1";
   TCut bgCut  = "isTrue!=1";
   if( smallEventCount ){
@@ -67,7 +69,7 @@ void computePhotonIDEfficiency()
     tree->Draw("pt:eta>>hBackground",miscCut && bgCut, "colz");
   }
 
-  TH1D *ptCheckHist = new TH1D("ptCheckHist","",185, 15, 200);
+  TH1D *ptCheckHist = new TH1D("ptCheckHist","",185, ptmin, ptmax);
   TH1D *etaCheckHist = new TH1D("etaCheckHist","",200, -5, 5);
 
   // Event-level variables:
@@ -164,8 +166,10 @@ void computePhotonIDEfficiency()
     for(int ipho = 0; ipho < nPho; ipho++){
       
       // Preselection
-      if( !(pt->at(ipho) > 30 && pt->at(ipho) < 200 ) ) continue;
-      if( !( hasPixelSeed->at(ipho) == 0 ) ) continue;
+      if( !(pt->at(ipho) > ptmin && pt->at(ipho) < ptmax ) ) continue;
+      if( fabs(eta->at(ipho))>1.4442 && fabs(eta->at(ipho))<1.566) continue;
+      if( fabs(eta->at(ipho))>2.5 ) continue;
+      // if( !( hasPixelSeed->at(ipho) == 0 ) ) continue;
 
       bool isBarrel = (fabs(eta->at(ipho)) < 1.479);
       bool pass = passWorkingPoint( wp, isBarrel, pt->at(ipho),
@@ -309,6 +313,8 @@ const float phIso_A[2][nWP] =
 const float phIso_B[2][nWP] = 
   { {0.0004, 0.0004, 0.0004},
     {0.0037, 0.0037, 0.0037} };
+
+
 
 bool passWorkingPoint(WpType iwp, bool isBarrel, float pt,
 		      float hOverE, float full5x5_sigmaIetaIeta, 
