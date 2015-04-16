@@ -22,11 +22,11 @@ process.source = cms.Source ("PoolSource",fileNames = cms.untracked.vstring(
    # Just a handful of files from the dataset are listed below, for testing
    #
 # A test sample:
-       '/store/mc/Phys14DR/GJet_Pt40_doubleEMEnriched_TuneZ2star_13TeV-pythia6/AODSIM/PU20bx25_PHYS14_25_V1-v1/00000/000B1591-F96E-E411-8885-00266CFFC198.root',
+#       '/store/mc/Phys14DR/GJet_Pt40_doubleEMEnriched_TuneZ2star_13TeV-pythia6/AODSIM/PU20bx25_PHYS14_25_V1-v1/00000/000B1591-F96E-E411-8885-00266CFFC198.root',
 #       '/store/mc/Phys14DR/GJet_Pt40_doubleEMEnriched_TuneZ2star_13TeV-pythia6/AODSIM/PU20bx25_PHYS14_25_V1-v1/00000/0028736A-346C-E411-BBC8-1CC1DE1CE56C.root',
 #       '/store/mc/Phys14DR/GJet_Pt40_doubleEMEnriched_TuneZ2star_13TeV-pythia6/AODSIM/PU20bx25_PHYS14_25_V1-v1/00000/005A3A97-3B6C-E411-9BDA-1CC1DE1CE01A.root',
 #  A local file
-#    'file:/afs/cern.ch/user/i/ikrav/workspace/releases-git/CMSSW_7_2_0/src/ElectronWork/ElectronNtupler/test/00A074A5-BF72-E411-B455-003048F02CBE.root'
+    'file:/afs/cern.ch/user/i/ikrav/workspace/releases-git/CMSSW_7_2_0/src/ElectronWork/ElectronNtupler/test/00A074A5-BF72-E411-B455-003048F02CBE.root'
  )
 )
 
@@ -35,8 +35,9 @@ process.source = cms.Source ("PoolSource",fileNames = cms.untracked.vstring(
 #
 
 from PhysicsTools.SelectorUtils.tools.vid_id_tools import *
-# turn on VID producer
-switchOnVIDPhotonIdProducer(process)
+# turn on VID producer, indicate data format  to be
+# DataFormat.AOD or DataFormat.MiniAOD, as appropriate
+switchOnVIDPhotonIdProducer(process, DataFormat.AOD)
 
 # define which IDs we want to produce
 my_id_modules = ['RecoEgamma.PhotonIdentification.Identification.cutBasedPhotonID_PHYS14_PU20bx25_V1_cff']
@@ -60,7 +61,8 @@ process.ntupler = cms.EDAnalyzer('PhotonNtuplerVIDDemoAOD',
                                  full5x5SigmaIEtaIEtaMap   = cms.InputTag("photonIDValueMapProducer:phoFull5x5SigmaIEtaIEta"),
                                  phoChargedIsolation = cms.InputTag("photonIDValueMapProducer:phoChargedIsolation"),
                                  phoNeutralHadronIsolation = cms.InputTag("photonIDValueMapProducer:phoNeutralHadronIsolation"),
-                                 phoPhotonIsolation = cms.InputTag("photonIDValueMapProducer:phoPhotonIsolation")
+                                 phoPhotonIsolation = cms.InputTag("photonIDValueMapProducer:phoPhotonIsolation"),
+                                 cfile = cms.FileInPath("EgammaAnalysis/PhotonTools/data/PHYS14/effAreaPhotons_cone03_pfChargedHadrons.txt")
                                 )
 
 process.TFileService = cms.Service("TFileService",

@@ -46,7 +46,7 @@
 #include "TTree.h"
 #include "Math/VectorUtil.h"
 
-
+#include "RecoEgamma/EgammaTools/interface/EffectiveAreas.h"
 
 //
 // class declaration
@@ -134,20 +134,39 @@ class PhotonNtuplerVIDDemoAOD : public edm::EDAnalyzer {
 
 // Effective areas for photons from Savvas's slides
 // for phys14 PU20bx25, described here:
+// // https://indico.cern.ch/event/367861/contribution/3/material/slides/0.pdf
+// namespace EffAreas {
+//   const int nEtaBins = 7;
+//   const float etaBinLimits[nEtaBins+1] = {
+//     0.0, 1.0, 1.479, 2.0, 2.2, 2.3, 2.4, 2.5};
+
+//   const float areaPhotons[nEtaBins] = {
+//     0.0894, 0.0750, 0.0423, 0.0561, 0.0882, 0.1144, 0.1684
+//   };
+//   const float areaNeutralHadrons[nEtaBins] = {
+//     0.049, 0.0108, 0.0019, 0.0037, 0.0062, 0.0130, 0.1699
+//   };
+//   const float areaChargedHadrons[nEtaBins] = {
+//     0.0089, 0.0062, 0.0086, 0.0041, 0.0113, 0.0085, 0.0039
+//   };
+// }
+
+// Effective areas for photons from Savvas's slides
+// for phys14 PU20bx25 V2, described here:
 // https://indico.cern.ch/event/367861/contribution/3/material/slides/0.pdf
-namespace EffectiveAreas {
+namespace EffAreas {
   const int nEtaBins = 7;
   const float etaBinLimits[nEtaBins+1] = {
     0.0, 1.0, 1.479, 2.0, 2.2, 2.3, 2.4, 2.5};
 
-  const float areaPhotons[nEtaBins] = {
-    0.0894, 0.0750, 0.0423, 0.0561, 0.0882, 0.1144, 0.1684
+  const float areaChargedHadrons[nEtaBins] = {
+    0.0130, 0.0096, 0.0107, 0.0077, 0.0088, 0.0065, 0.0030
   };
   const float areaNeutralHadrons[nEtaBins] = {
-    0.049, 0.0108, 0.0019, 0.0037, 0.0062, 0.0130, 0.1699
+    0.0056, 0.0107, 0.0019, 0.0011, 0.0076, 0.0178, 0.1675
   };
-  const float areaChargedHadrons[nEtaBins] = {
-    0.0089, 0.0062, 0.0086, 0.0041, 0.0113, 0.0085, 0.0039
+  const float areaPhotons[nEtaBins] = {
+    0.0896, 0.0762, 0.0383, 0.0534, 0.0846, 0.1032, 0.1598
   };
 }
 //
@@ -206,7 +225,15 @@ PhotonNtuplerVIDDemoAOD::PhotonNtuplerVIDDemoAOD(const edm::ParameterSet& iConfi
   photonTree_->Branch("isoPhotonsWithEA"             , &isoPhotonsWithEA_);
 
   photonTree_->Branch("isTrue"             , &isTrue_);
- 
+
+  // DEBUG
+  edm::FileInPath fp_ = iConfig.getParameter<edm::FileInPath>("cfile");
+  EffectiveAreas ea(fp_.fullPath());
+  ea.printEffectiveAreas();
+  printf("   effective area for eta=0.5 is %f\n", ea.getEffectiveArea(0.5));
+  printf("   effective area for eta=1.5 is %f\n", ea.getEffectiveArea(1.5));
+  printf("   effective area for eta=2.3 is %f\n", ea.getEffectiveArea(2.3));
+  printf("   effective area for eta=5 is %f\n", ea.getEffectiveArea(5));
 }
 
 
@@ -230,7 +257,7 @@ PhotonNtuplerVIDDemoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup
   using namespace std;
   using namespace edm;
   using namespace reco;
-  
+
   // // An object needed for isolation calculations
   // GEDPhoIDTools *GEDIdTool = new GEDPhoIDTools(iEvent);
 
@@ -346,9 +373,13 @@ PhotonNtuplerVIDDemoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup
     bool isPassLoose  = (*loose_id_decisions)[phoPtr];
     bool isPassMedium = (*medium_id_decisions)[phoPtr];
     bool isPassTight  = (*tight_id_decisions)[phoPtr];
-    passLooseId_.push_back ( isPassLoose );
-    passMediumId_.push_back( isPassMedium);
-    passTightId_.push_back ( isPassTight );
+    passLooseId_.push_back ( (int)isPassLoose );
+    passMediumId_.push_back( (int)isPassMedium);
+    passTightId_.push_back ( (int)isPassTight );
+    // printf("DEBUG:Analyzer  pt= %f   eta= %f   H/E= %f   see= %f   decision= %d\n", 
+    //  	   phoPtr->pt(), phoPtr->superCluster()->eta(), 
+    //  	   phoPtr->hadTowOverEm(), (*full5x5SigmaIEtaIEtaMap)[ phoPtr ], (int)isPassTight);
+
     
     //
     // Save various ID variables for possible later cross checks
@@ -363,15 +394,15 @@ PhotonNtuplerVIDDemoAOD::analyze(const edm::Event& iEvent, const edm::EventSetup
     // Compute isolation with effective area correction for PU
     // Find eta bin first. If eta>2.5, the last eta bin is used.
     int etaBin = 0; 
-    while ( etaBin < EffectiveAreas::nEtaBins-1 
-	    && abs( pho->superCluster()->eta() ) > EffectiveAreas::etaBinLimits[etaBin+1] )
+    while ( etaBin < EffAreas::nEtaBins-1 
+	    && abs( pho->superCluster()->eta() ) > EffAreas::etaBinLimits[etaBin+1] )
       { ++etaBin; };
     isoPhotonsWithEA_        .push_back( std::max( (float)0.0, (*phoPhotonIsolationMap)       [phoPtr] 
-						  - rho_ * EffectiveAreas::areaPhotons[etaBin] ) );
+						  - rho_ * EffAreas::areaPhotons[etaBin] ) );
     isoNeutralHadronsWithEA_ .push_back( std::max( (float)0.0, (*phoNeutralHadronIsolationMap)[phoPtr] 
-						  - rho_ * EffectiveAreas::areaNeutralHadrons[etaBin] ) );
+						  - rho_ * EffAreas::areaNeutralHadrons[etaBin] ) );
     isoChargedHadronsWithEA_ .push_back( std::max( (float)0.0, (*phoChargedIsolationMap)      [phoPtr] 
-						  - rho_ * EffectiveAreas::areaChargedHadrons[etaBin] ) );
+						  - rho_ * EffAreas::areaChargedHadrons[etaBin] ) );
 
     isTrue_.push_back( matchToTruth(*pho, genParticles) );
 

@@ -22,8 +22,8 @@ const TString wpName[nWP] =
 const WpType wp = WP_TIGHT;
 
 const TString treename = "ntupler/PhotonTree";
-const TString fname1 = "/afs/cern.ch/user/i/ikrav/workspace/ntuples/PHYS14/GJet_Pt40_PU20bx25_photons_event_structure.root";
-//const TString fname1 = "photon_ntuple.root";
+//const TString fname1 = "/afs/cern.ch/user/i/ikrav/workspace/ntuples/PHYS14/GJet_Pt40_PU20bx25_photons_event_structure.root";
+const TString fname1 = "photon_ntuple.root";
 
 bool verbose = false;
 bool smallEventCount = false;
